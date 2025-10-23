@@ -1,0 +1,7 @@
+name: "infer_decoder"
+arch: "decoder"
+max_length: 512
+num_tokens: 100
+batch_size: 1
+num_runs: 5
+warmup_runs: 2

@@ -1,0 +1,7 @@
+name: "bert-base-uncased"
+arch: "encoder"
+pretrained: "bert-base-uncased"
+dtype: "fp16"
+attn_impl: "standard"
+use_lora: true
+max_length: 256

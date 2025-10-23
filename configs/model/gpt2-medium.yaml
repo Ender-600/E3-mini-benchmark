@@ -1,0 +1,7 @@
+name: "gpt2-medium"
+arch: "decoder"
+pretrained: "gpt2-medium"
+dtype: "fp16"
+attn_impl: "standard"
+use_lora: true
+max_length: 256

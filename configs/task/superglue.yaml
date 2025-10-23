@@ -1,0 +1,3 @@
+name: "superglue"
+tasks: ["BoolQ", "RTE", "WiC", "CB"]
+max_length: 256

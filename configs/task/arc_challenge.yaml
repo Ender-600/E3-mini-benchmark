@@ -1,0 +1,4 @@
+name: "arc_challenge"
+tasks: ["arc_challenge"]
+max_length: 2048
+num_fewshot: 5

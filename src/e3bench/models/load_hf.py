@@ -1,0 +1,99 @@
+"""HuggingFace model loading utilities."""
+
+import torch
+from transformers import (
+    AutoModelForSequenceClassification,
+    AutoModelForCausalLM,
+    AutoModelForSeq2SeqLM,
+    AutoTokenizer,
+    BitsAndBytesConfig
+)
+from typing import Dict, Any, Tuple, Optional
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+def load_model_and_tokenizer(
+    config: Dict[str, Any],
+    num_labels: Optional[int] = None,
+    use_8bit: bool = False
+) -> Tuple[Any, Any]:
+    """Load model and tokenizer from HuggingFace."""
+    
+    model_name = config["pretrained"]
+    arch = config["arch"]
+    dtype = config.get("dtype", "fp16")
+    max_length = config.get("max_length", 256)
+    
+    logger.info(f"Loading {arch} model: {model_name}")
+    
+    # Configure quantization if requested
+    quantization_config = None
+    if use_8bit:
+        try:
+            quantization_config = BitsAndBytesConfig(
+                load_in_8bit=True,
+                llm_int8_threshold=6.0
+            )
+            logger.info("Using 8-bit quantization")
+        except ImportError:
+            logger.warning("bitsandbytes not available, falling back to fp16")
+            use_8bit = False
+    
+    # Load tokenizer
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    
+    # Add padding token if not present
+    if tokenizer.pad_token is None:
+        if tokenizer.eos_token:
+            tokenizer.pad_token = tokenizer.eos_token
+        else:
+            tokenizer.add_special_tokens({'pad_token': '[PAD]'})
+    
+    # Load model based on architecture
+    if arch == "encoder":
+        model = AutoModelForSequenceClassification.from_pretrained(
+            model_name,
+            num_labels=num_labels or 2,
+            torch_dtype=torch.float16 if dtype == "fp16" else torch.float32,
+            quantization_config=quantization_config,
+            attn_implementation=config.get("attn_impl", "standard")
+        )
+    elif arch == "decoder":
+        model = AutoModelForCausalLM.from_pretrained(
+            model_name,
+            torch_dtype=torch.float16 if dtype == "fp16" else torch.float32,
+            quantization_config=quantization_config,
+            attn_implementation=config.get("attn_impl", "standard")
+        )
+    elif arch == "encdec":
+        model = AutoModelForSeq2SeqLM.from_pretrained(
+            model_name,
+            torch_dtype=torch.float16 if dtype == "fp16" else torch.float32,
+            quantization_config=quantization_config,
+            attn_implementation=config.get("attn_impl", "standard")
+        )
+    else:
+        raise ValueError(f"Unknown architecture: {arch}")
+    
+    # Resize token embeddings if new tokens were added
+    if len(tokenizer) > model.config.vocab_size:
+        model.resize_token_embeddings(len(tokenizer))
+    
+    # Set model to evaluation mode by default
+    model.eval()
+    
+    logger.info(f"Loaded {arch} model with {model.num_parameters():,} parameters")
+    
+    return model, tokenizer
+
+
+def get_model_device(model: Any) -> torch.device:
+    """Get the device of the model."""
+    return next(model.parameters()).device
+
+
+def move_model_to_device(model: Any, device: torch.device) -> Any:
+    """Move model to specified device."""
+    return model.to(device)

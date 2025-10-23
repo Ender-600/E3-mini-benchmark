@@ -1,0 +1,7 @@
+name: "t5-base"
+arch: "encdec"
+pretrained: "t5-base"
+dtype: "fp16"
+attn_impl: "standard"
+use_lora: true
+max_length: 256

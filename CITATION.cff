@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "E3-mini-benchmark"
+  given-names: "Team"
+title: "E³ Mini-Benchmark: A Comprehensive Evaluation Framework for Encoder-Only, Encoder-Decoder, and Decoder-Only Language Models"
+version: 1.0.0
+date-released: 2024-01-01
+url: "https://github.com/your-org/E3-mini-benchmark"
+license: MIT
+keywords:
+  - "language models"
+  - "benchmarking"
+  - "efficiency"
+  - "effectiveness"
+  - "encoder-only"
+  - "encoder-decoder"
+  - "decoder-only"

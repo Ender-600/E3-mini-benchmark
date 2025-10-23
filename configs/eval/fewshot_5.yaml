@@ -1,0 +1,5 @@
+name: "fewshot_5"
+num_fewshot: 5
+max_length: 2048
+batch_size: 1
+limit: 100

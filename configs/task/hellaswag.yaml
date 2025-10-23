@@ -1,0 +1,4 @@
+name: "hellaswag"
+tasks: ["hellaswag"]
+max_length: 2048
+num_fewshot: 5
