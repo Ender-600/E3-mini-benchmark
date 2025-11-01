@@ -25,20 +25,20 @@ def run_lm_eval(
     num_fewshot: int = 5,
     batch_size: int = 1,
     limit: int = 100,
-    max_length: int = 2048
+    max_length: int = 512
 ) -> Dict[str, Any]:
     """Run lm-eval-harness evaluation."""
     
     # Build lm-eval command
+    # Use context_window to limit sequence length and prevent CUDA errors
     cmd = [
         "lm_eval",
         "--model", "hf",
-        "--model_args", f"pretrained={model_name}",
+        "--model_args", f"pretrained={model_name},max_length={max_length}",
         "--tasks", ",".join(tasks),
         "--num_fewshot", str(num_fewshot),
         "--batch_size", str(batch_size),
         "--limit", str(limit),
-        "--max_length", str(max_length),
         "--output_path", "temp_lm_eval_results.json"
     ]
     
@@ -138,7 +138,7 @@ def evaluate_fewshot(
             num_fewshot=eval_config.get("num_fewshot", 5),
             batch_size=eval_config.get("batch_size", 1),
             limit=eval_config.get("limit", 100),
-            max_length=eval_config.get("max_length", 2048)
+            max_length=eval_config.get("max_length", 512)
         )
         
         # Extract metrics

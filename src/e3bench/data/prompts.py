@@ -69,7 +69,7 @@ def _get_rte_prompt(examples: List[Dict[str, Any]], test_example: Dict[str, Any]
     prompt = "Determine if the hypothesis is entailed by the premise.\n\n"
     
     for example in examples:
-        label = "Yes" if example["label"] == 1 else "No"
+        label = "entailment" if example["label"] == 1 else "not_entailment"
         prompt += f"Premise: {example['premise']}\n"
         prompt += f"Hypothesis: {example['hypothesis']}\n"
         prompt += f"Entailment: {label}\n\n"
@@ -87,7 +87,7 @@ def _get_wic_prompt(examples: List[Dict[str, Any]], test_example: Dict[str, Any]
     prompt = "Determine if the word has the same meaning in both sentences.\n\n"
     
     for example in examples:
-        label = "Yes" if example["label"] == 1 else "No"
+        label = "True" if example["label"] == 1 else "False"
         prompt += f"Word: {example['word']}\n"
         prompt += f"Sentence 1: {example['sentence1']}\n"
         prompt += f"Sentence 2: {example['sentence2']}\n"

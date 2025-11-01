@@ -1,15 +1,15 @@
 name: "lora"
-fp16: true
-grad_checkpointing: true
+fp16: false
+grad_checkpointing: false
 per_device_train_batch_size: 16
 per_device_eval_batch_size: 32
 gradient_accumulation_steps: 2
 num_train_epochs: 5
-learning_rate: 5e-4
+learning_rate: 0.00005  # Reduced from 0.0005 to prevent gradient explosion (1/10 of original)
 weight_decay: 0.01
 warmup_ratio: 0.1
 max_length: 256
-seed: [42, 43, 44]
+seed: [42]
 save_strategy: "epoch"
 eval_strategy: "epoch"
 logging_steps: 10
@@ -19,4 +19,4 @@ save_total_limit: 2
 lora_r: 16
 lora_alpha: 32
 lora_dropout: 0.05
-lora_target_modules: ["q_proj", "v_proj", "k_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
+# Note: target_modules will be automatically determined based on model architecture

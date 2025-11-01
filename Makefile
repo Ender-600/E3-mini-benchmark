@@ -1,18 +1,30 @@
 # E³ Mini-Benchmark Makefile
 
-.PHONY: help env train eval bench report figs clean all
+.PHONY: help env train eval bench report figs clean all eval-all-models fewshot-comparison \
+	eval-bert-0shot eval-bert-5shot eval-bert-10shot \
+	eval-gpt2-0shot eval-gpt2-5shot eval-gpt2-10shot \
+	eval-t5-0shot eval-t5-5shot eval-t5-10shot
 
 # Default target
 help:
 	@echo "E³ Mini-Benchmark - Available targets:"
-	@echo "  env     - Install dependencies"
-	@echo "  train   - Run SuperGLUE fine-tuning (LoRA)"
-	@echo "  eval    - Run few-shot evaluation"
-	@echo "  bench   - Run inference benchmarking"
-	@echo "  report  - Aggregate results and run significance tests"
-	@echo "  figs    - Generate plots"
-	@echo "  clean   - Clean up generated files"
-	@echo "  all     - Run complete benchmark pipeline"
+	@echo "  env              - Install dependencies"
+	@echo "  train            - Run SuperGLUE fine-tuning (LoRA)"
+	@echo "  eval             - Run few-shot evaluation"
+	@echo "  bench            - Run inference benchmarking"
+	@echo "  report           - Aggregate results and run significance tests"
+	@echo "  figs             - Generate plots"
+	@echo "  clean            - Clean up generated files"
+	@echo "  all              - Run complete benchmark pipeline"
+	@echo ""
+	@echo "Cross-model comparison:"
+	@echo "  eval-all-models  - Run few-shot eval on all models (BERT, GPT-2, T5)"
+	@echo "  fewshot-comparison - Full few-shot comparison with all models and shots"
+	@echo ""
+	@echo "Individual targets:"
+	@echo "  eval-bert-*      - BERT few-shot eval (0/5/10 shot)"
+	@echo "  eval-gpt2-*      - GPT-2 few-shot eval (0/5/10 shot)"
+	@echo "  eval-t5-*        - T5 few-shot eval (0/5/10 shot)"
 
 # Install dependencies
 env:
@@ -31,7 +43,7 @@ train: results/
 		--train_cfg configs/train/lora.yaml \
 		--output_dir results
 
-# Few-shot evaluation (default: GPT-2 medium)
+# Few-shot evaluation (default: GPT-2 base)
 eval: results/
 	@echo "Running few-shot evaluation..."
 	python -m src.e3bench.eval.eval_fewshot \
@@ -100,27 +112,103 @@ train-gpt2: results/
 		--train_cfg configs/train/lora.yaml \
 		--output_dir results
 
-# Individual evaluation targets
-eval-0shot: results/
-	@echo "Running 0-shot evaluation..."
+# ============================================================
+# Cross-Model Few-Shot Evaluation Targets
+# ============================================================
+
+# BERT evaluation targets
+eval-bert-0shot: results/
+	@echo "Running BERT 0-shot evaluation..."
+	python -m src.e3bench.eval.eval_fewshot \
+		--model_cfg configs/model/bert-base.yaml \
+		--eval_cfg configs/eval/fewshot_0.yaml \
+		--output_dir results
+
+eval-bert-5shot: results/
+	@echo "Running BERT 5-shot evaluation..."
+	python -m src.e3bench.eval.eval_fewshot \
+		--model_cfg configs/model/bert-base.yaml \
+		--eval_cfg configs/eval/fewshot_5.yaml \
+		--output_dir results
+
+eval-bert-10shot: results/
+	@echo "Running BERT 10-shot evaluation..."
+	python -m src.e3bench.eval.eval_fewshot \
+		--model_cfg configs/model/bert-base.yaml \
+		--eval_cfg configs/eval/fewshot_10.yaml \
+		--output_dir results
+
+# GPT-2 evaluation targets
+eval-gpt2-0shot: results/
+	@echo "Running GPT-2 0-shot evaluation..."
 	python -m src.e3bench.eval.eval_fewshot \
 		--model_cfg configs/model/gpt2-medium.yaml \
 		--eval_cfg configs/eval/fewshot_0.yaml \
 		--output_dir results
 
-eval-5shot: results/
-	@echo "Running 5-shot evaluation..."
+eval-gpt2-5shot: results/
+	@echo "Running GPT-2 5-shot evaluation..."
 	python -m src.e3bench.eval.eval_fewshot \
 		--model_cfg configs/model/gpt2-medium.yaml \
 		--eval_cfg configs/eval/fewshot_5.yaml \
 		--output_dir results
 
-eval-10shot: results/
-	@echo "Running 10-shot evaluation..."
+eval-gpt2-10shot: results/
+	@echo "Running GPT-2 10-shot evaluation..."
 	python -m src.e3bench.eval.eval_fewshot \
 		--model_cfg configs/model/gpt2-medium.yaml \
 		--eval_cfg configs/eval/fewshot_10.yaml \
 		--output_dir results
+
+# T5 evaluation targets
+eval-t5-0shot: results/
+	@echo "Running T5 0-shot evaluation..."
+	python -m src.e3bench.eval.eval_fewshot \
+		--model_cfg configs/model/t5-base.yaml \
+		--eval_cfg configs/eval/fewshot_0.yaml \
+		--output_dir results
+
+eval-t5-5shot: results/
+	@echo "Running T5 5-shot evaluation..."
+	python -m src.e3bench.eval.eval_fewshot \
+		--model_cfg configs/model/t5-base.yaml \
+		--eval_cfg configs/eval/fewshot_5.yaml \
+		--output_dir results
+
+eval-t5-10shot: results/
+	@echo "Running T5 10-shot evaluation..."
+	python -m src.e3bench.eval.eval_fewshot \
+		--model_cfg configs/model/t5-base.yaml \
+		--eval_cfg configs/eval/fewshot_10.yaml \
+		--output_dir results
+
+# Comprehensive evaluation: all models with 5-shot
+eval-all-models: results/
+	@echo "Running few-shot evaluation on all models (5-shot)..."
+	$(MAKE) eval-bert-5shot
+	$(MAKE) eval-gpt2-5shot
+	$(MAKE) eval-t5-5shot
+	@echo "All models evaluation completed!"
+
+# Full few-shot comparison: all models with all shots
+fewshot-comparison: results/
+	@echo "Running comprehensive few-shot comparison..."
+	@echo "This will evaluate BERT, GPT-2, and T5 with 0, 5, and 10 shots each..."
+	$(MAKE) eval-bert-0shot
+	$(MAKE) eval-bert-5shot
+	$(MAKE) eval-bert-10shot
+	$(MAKE) eval-gpt2-0shot
+	$(MAKE) eval-gpt2-5shot
+	$(MAKE) eval-gpt2-10shot
+	$(MAKE) eval-t5-0shot
+	$(MAKE) eval-t5-5shot
+	$(MAKE) eval-t5-10shot
+	@echo "Few-shot comparison completed!"
+	@echo "Now aggregating results..."
+	$(MAKE) report
+	@echo "Generating comparison plots..."
+	$(MAKE) figs
+	@echo "Complete! Check tables/ and figs/ directories for results."
 
 # Individual benchmarking targets
 bench-decoder: results/
@@ -135,6 +223,13 @@ bench-seq2seq: results/
 	python -m src.e3bench.eval.bench_infer \
 		--model_cfg configs/model/t5-base.yaml \
 		--bench_cfg configs/bench/infer_seq2seq.yaml \
+		--output_dir results
+
+bench-encoder: results/
+	@echo "Benchmarking encoder-only models..."
+	python -m src.e3bench.eval.bench_infer \
+		--model_cfg configs/model/bert-base.yaml \
+		--bench_cfg configs/bench/infer_encoder.yaml \
 		--output_dir results
 
 # Continued pretraining targets

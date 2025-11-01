@@ -1,0 +1,6 @@
+name: "infer_encoder"
+arch: "encoder"
+max_length: 512
+batch_size: 1
+num_runs: 5
+warmup_runs: 2

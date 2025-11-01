@@ -64,50 +64,45 @@ def preprocess_pretraining_data(
     """Preprocess data for continued pretraining."""
     
     def tokenize_function(examples):
+        texts = examples["text"] if "text" in examples else examples["content"]
+        
         if arch == "encoder":
-            # Masked language modeling
-            texts = examples["text"] if "text" in examples else examples["content"]
+            # Masked language modeling - let collator handle labels
             tokenized = tokenizer(
                 texts,
                 truncation=True,
-                padding=True,
+                padding=False,
                 max_length=max_length,
-                return_tensors="pt"
             )
-            # For MLM, labels are the same as input_ids
-            tokenized["labels"] = tokenized["input_ids"].copy()
-            
+            # Don't set labels here - DataCollatorForLanguageModeling will handle it
         elif arch == "decoder":
-            # Causal language modeling
-            texts = examples["text"] if "text" in examples else examples["content"]
+            # Causal language modeling - let collator handle labels
             tokenized = tokenizer(
                 texts,
                 truncation=True,
-                padding=True,
+                padding=False,
                 max_length=max_length,
-                return_tensors="pt"
             )
-            # For CLM, labels are the same as input_ids
-            tokenized["labels"] = tokenized["input_ids"].copy()
+            # Don't set labels here - DataCollatorForLanguageModeling will handle it
             
         elif arch == "encdec":
             # Span corruption (T5 style)
-            texts = examples["text"] if "text" in examples else examples["content"]
-            # Simple span corruption: mask random spans
             tokenized = tokenizer(
                 texts,
                 truncation=True,
-                padding=True,
+                padding=False,
                 max_length=max_length,
-                return_tensors="pt"
             )
             # For T5, we need to create input and target sequences
             # This is simplified - in practice you'd use proper span corruption
-            tokenized["labels"] = tokenized["input_ids"].copy()
+            tokenized["labels"] = [seq[:] for seq in tokenized["input_ids"]]
         
         return tokenized
     
-    return dataset.map(tokenize_function, batched=True)
+    # Tokenize and remove original columns
+    dataset = dataset.map(tokenize_function, batched=True, remove_columns=dataset.column_names)
+    
+    return dataset
 
 
 def continued_pretraining(
@@ -151,18 +146,18 @@ def continued_pretraining(
             num_samples=1000  # Limit for efficiency
         )
         
-        # Load model and tokenizer
-        model, tokenizer = load_model_and_tokenizer(model_config)
+        # Load model and tokenizer for pretraining
+        model, tokenizer = load_model_and_tokenizer(model_config, for_pretraining=True)
         
         # Setup LoRA if requested
         if model_config.get("use_lora", False):
             task_type = "causal_lm"
             if model_config["arch"] == "encoder":
-                task_type = "classification"  # Simplified for MLM
+                task_type = "feature_extraction"  # For MLM pretraining
             elif model_config["arch"] == "encdec":
                 task_type = "seq2seq"
             
-            model = setup_lora(model, train_config, task_type)
+            model = setup_lora(model, train_config, task_type, arch=model_config["arch"])
         
         # Preprocess data
         processed_dataset = preprocess_pretraining_data(
@@ -176,13 +171,24 @@ def continued_pretraining(
         train_dataset = processed_dataset.select(range(train_size))
         eval_dataset = processed_dataset.select(range(train_size, train_size + eval_size))
         
-        # Data collator
-        if model_config["arch"] == "encdec":
-            data_collator = DataCollatorForSeq2Seq(tokenizer=tokenizer)
-        else:
+        # Data collator - use built-in collators
+        if model_config["arch"] == "decoder":
             data_collator = DataCollatorForLanguageModeling(
                 tokenizer=tokenizer,
-                mlm=(model_config["arch"] == "encoder")
+                mlm=False  # Causal LM for decoder
+            )
+        elif model_config["arch"] == "encoder":
+            data_collator = DataCollatorForLanguageModeling(
+                tokenizer=tokenizer,
+                mlm=True  # Masked LM for encoder
+            )
+        else:  # encdec
+            from transformers import DataCollatorForSeq2Seq
+            data_collator = DataCollatorForSeq2Seq(
+                tokenizer=tokenizer,
+                pad_to_multiple_of=8,
+                label_pad_token_id=-100,
+                return_tensors="pt"
             )
         
         # Training arguments
@@ -197,6 +203,7 @@ def continued_pretraining(
             warmup_ratio=train_config.get("warmup_ratio", 0.1),
             fp16=train_config.get("fp16", True),
             gradient_checkpointing=train_config.get("grad_checkpointing", True),
+            max_grad_norm=1.0,  # Gradient clipping to prevent gradient explosion
             save_strategy="steps",
             eval_strategy="steps",
             save_steps=100,
@@ -206,8 +213,8 @@ def continued_pretraining(
             load_best_model_at_end=True,
             metric_for_best_model="eval_loss",
             greater_is_better=False,
-            report_to=None,
-            remove_unused_columns=False
+            report_to=["wandb"],  # Enable wandb logging
+            remove_unused_columns=True  # Remove original text fields
         )
         
         # Trainer

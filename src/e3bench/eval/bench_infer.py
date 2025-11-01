@@ -82,10 +82,28 @@ def benchmark_decoder_inference(
             end_time = time.time()
             total_time = end_time - start_time
             
-            # Calculate metrics
-            generated_tokens = outputs.shape[1] - inputs["input_ids"].shape[1]
-            latency = total_time / generated_tokens if generated_tokens > 0 else total_time
-            throughput = generated_tokens / total_time if total_time > 0 else 0
+            # FIXED: Calculate metrics for seq2seq models
+            # For T5 and other encoder-decoder models, outputs.shape[1] is the total generated length
+            input_length = inputs["input_ids"].shape[1]
+            output_length = outputs.shape[1]
+            
+            # For seq2seq models, the output is the generated sequence
+            # We need to count actual generated tokens by decoding
+            generated_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
+            generated_tokens = len(tokenizer.encode(generated_text, add_special_tokens=False))
+            
+            # Debug logging
+            if run == 0:  # Only log for first run to avoid spam
+                logger.info(f"Input: {input_text[:50]}...")
+                logger.info(f"Generated: {generated_text[:50]}...")
+                logger.info(f"Input length: {input_length}, Output length: {output_length}, Generated tokens: {generated_tokens}")
+            
+            if generated_tokens <= 0:
+                logger.warning(f"No tokens generated for input: {input_text[:50]}...")
+                continue
+                
+            latency = total_time / generated_tokens
+            throughput = generated_tokens / total_time
             
             run_latencies.append(latency)
             run_throughputs.append(throughput)
@@ -167,10 +185,28 @@ def benchmark_seq2seq_inference(
             end_time = time.time()
             total_time = end_time - start_time
             
-            # Calculate metrics
-            generated_tokens = outputs.shape[1] - inputs["input_ids"].shape[1]
-            latency = total_time / generated_tokens if generated_tokens > 0 else total_time
-            throughput = generated_tokens / total_time if total_time > 0 else 0
+            # FIXED: Calculate metrics for seq2seq models
+            # For T5 and other encoder-decoder models, outputs.shape[1] is the total generated length
+            input_length = inputs["input_ids"].shape[1]
+            output_length = outputs.shape[1]
+            
+            # For seq2seq models, the output is the generated sequence
+            # We need to count actual generated tokens by decoding
+            generated_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
+            generated_tokens = len(tokenizer.encode(generated_text, add_special_tokens=False))
+            
+            # Debug logging
+            if run == 0:  # Only log for first run to avoid spam
+                logger.info(f"Input: {input_text[:50]}...")
+                logger.info(f"Generated: {generated_text[:50]}...")
+                logger.info(f"Input length: {input_length}, Output length: {output_length}, Generated tokens: {generated_tokens}")
+            
+            if generated_tokens <= 0:
+                logger.warning(f"No tokens generated for input: {input_text[:50]}...")
+                continue
+                
+            latency = total_time / generated_tokens
+            throughput = generated_tokens / total_time
             
             run_latencies.append(latency)
             run_throughputs.append(throughput)
@@ -281,6 +317,14 @@ def benchmark_inference(
         
         # Load model and tokenizer
         model, tokenizer = load_model_and_tokenizer(model_config)
+        
+        # Move model to GPU if available
+        if torch.cuda.is_available():
+            device = torch.device("cuda")
+            model = model.to(device)
+            logger.info(f"Moved model to {device}")
+        else:
+            logger.warning("CUDA not available, using CPU")
         
         # Load LoRA weights if available
         if model_config.get("use_lora", False):

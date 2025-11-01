@@ -41,27 +41,77 @@ def aggregate_training_results(results: List[Dict[str, Any]]) -> pd.DataFrame:
             continue
         
         exp_id = result["exp_id"]
-        model_config = result["config"]["model"]
-        task_config = result["config"]["task"]
-        train_config = result["config"]["train"]
-        metrics = result["metrics"]
-        timing = result["timing"]
-        resources = result.get("resources", {})
-        power = result.get("power", {})
+        
+        # Support both old and new format
+        if "config" in result:
+            # New format
+            model_config = result["config"]["model"]
+            task_config = result["config"]["task"]
+            train_config = result["config"]["train"]
+            metrics = result.get("metrics", {})
+            timing = result.get("timing", {})
+            resources = result.get("resources", {})
+            power = result.get("power", {})
+            duration_seconds = timing.get("duration_seconds", 0)
+        else:
+            # Old format: model, task_cfg, train_cfg, results
+            if "model" not in result:
+                logger.warning(f"Skipping {exp_id}: missing both 'config' and 'model' fields")
+                continue
+            model_config = result["model"]
+            task_config = result.get("task_cfg", {})
+            train_config = result.get("train_cfg", {})
+            # Old format uses "results" instead of "metrics"
+            metrics = result.get("results", {})
+            # Old format has start_time/end_time instead of timing
+            start_time = result.get("start_time", 0)
+            end_time = result.get("end_time", 0)
+            duration_seconds = end_time - start_time if end_time > start_time else 0
+            # Old format stores resources in results
+            resources = {}
+            power = result.get("power", {})
         
         # Extract per-task results
         for task_name, task_metrics in metrics.items():
-            if isinstance(task_metrics, dict) and "eval_accuracy" in task_metrics:
+            if not isinstance(task_metrics, dict):
+                continue
+            
+            # Handle different metric structures
+            eval_accuracy = None
+            eval_loss = None
+            train_loss = None
+            
+            # New format: metrics directly contain eval_accuracy, eval_loss
+            if "eval_accuracy" in task_metrics:
+                eval_accuracy = task_metrics["eval_accuracy"]
+                eval_loss = task_metrics.get("eval_loss", 0)
+                train_loss = task_metrics.get("train_loss", 0)
+            # Old format: metrics contain "mean" sub-dict with eval_accuracy
+            elif "mean" in task_metrics and isinstance(task_metrics["mean"], dict):
+                mean_metrics = task_metrics["mean"]
+                eval_accuracy = mean_metrics.get("eval_accuracy")
+                eval_loss = mean_metrics.get("eval_loss", 0)
+                # Old format doesn't have train_loss in the aggregated results
+            
+            if eval_accuracy is not None:
+                # Calculate max_memory_gb for old format (stored per run)
+                max_memory_gb = 0
+                if "runs" in task_metrics and isinstance(task_metrics["runs"], list):
+                    for run in task_metrics["runs"]:
+                        max_memory_gb = max(max_memory_gb, run.get("max_memory_gb", 0))
+                else:
+                    max_memory_gb = resources.get("max_memory_gb", 0)
+                
                 training_data.append({
                     "exp_id": exp_id,
-                    "model": model_config["name"],
-                    "arch": model_config["arch"],
+                    "model": model_config.get("name", "unknown"),
+                    "arch": model_config.get("arch", "unknown"),
                     "task": task_name,
-                    "accuracy": task_metrics["eval_accuracy"],
-                    "train_loss": task_metrics.get("train_loss", 0),
-                    "eval_loss": task_metrics.get("eval_loss", 0),
-                    "duration_seconds": timing["duration_seconds"],
-                    "max_memory_gb": resources.get("max_memory_gb", 0),
+                    "accuracy": eval_accuracy,
+                    "train_loss": train_loss or 0,
+                    "eval_loss": eval_loss or 0,
+                    "duration_seconds": duration_seconds,
+                    "max_memory_gb": max_memory_gb,
                     "avg_watt": power.get("avg_watt", 0),
                     "kwh": power.get("kwh", 0),
                     "use_lora": model_config.get("use_lora", False),
@@ -84,11 +134,16 @@ def aggregate_fewshot_results(results: List[Dict[str, Any]]) -> pd.DataFrame:
         if "fewshot" not in result.get("exp_id", ""):
             continue
         
+        # Check if config exists
+        if "config" not in result:
+            logger.warning(f"Skipping {result.get('exp_id', 'unknown')}: missing 'config' field")
+            continue
+        
         exp_id = result["exp_id"]
         model_config = result["config"]["model"]
         eval_config = result["config"]["eval"]
-        metrics = result["metrics"]
-        timing = result["timing"]
+        metrics = result.get("metrics", {})
+        timing = result.get("timing", {})
         resources = result.get("resources", {})
         power = result.get("power", {})
         
@@ -104,7 +159,7 @@ def aggregate_fewshot_results(results: List[Dict[str, Any]]) -> pd.DataFrame:
                     "accuracy": value,
                     "num_fewshot": eval_config.get("num_fewshot", 0),
                     "max_length": eval_config.get("max_length", 2048),
-                    "duration_seconds": timing["duration_seconds"],
+                    "duration_seconds": timing.get("duration_seconds", 0),
                     "max_memory_gb": resources.get("max_memory_gb", 0),
                     "avg_watt": power.get("avg_watt", 0),
                     "kwh": power.get("kwh", 0)
@@ -122,11 +177,16 @@ def aggregate_inference_results(results: List[Dict[str, Any]]) -> pd.DataFrame:
         if "inference" not in result.get("exp_id", ""):
             continue
         
+        # Check if config exists
+        if "config" not in result:
+            logger.warning(f"Skipping {result.get('exp_id', 'unknown')}: missing 'config' field")
+            continue
+        
         exp_id = result["exp_id"]
         model_config = result["config"]["model"]
         bench_config = result["config"]["bench"]
-        metrics = result["metrics"]
-        timing = result["timing"]
+        metrics = result.get("metrics", {})
+        timing = result.get("timing", {})
         resources = result.get("resources", {})
         power = result.get("power", {})
         
@@ -140,7 +200,7 @@ def aggregate_inference_results(results: List[Dict[str, Any]]) -> pd.DataFrame:
             "throughput_std": metrics.get("throughput_std", 0),
             "max_memory_gb": metrics.get("max_memory_gb", resources.get("max_memory_gb", 0)),
             "current_memory_gb": metrics.get("current_memory_gb", 0),
-            "duration_seconds": timing["duration_seconds"],
+            "duration_seconds": timing.get("duration_seconds", 0),
             "avg_watt": power.get("avg_watt", 0),
             "kwh": power.get("kwh", 0),
             "num_runs": metrics.get("total_runs", 0)
@@ -158,11 +218,16 @@ def aggregate_pretraining_results(results: List[Dict[str, Any]]) -> pd.DataFrame
         if "cont_pretrain" not in result.get("exp_id", ""):
             continue
         
+        # Check if config exists
+        if "config" not in result:
+            logger.warning(f"Skipping {result.get('exp_id', 'unknown')}: missing 'config' field")
+            continue
+        
         exp_id = result["exp_id"]
         model_config = result["config"]["model"]
         train_config = result["config"]["train"]
-        metrics = result["metrics"]
-        timing = result["timing"]
+        metrics = result.get("metrics", {})
+        timing = result.get("timing", {})
         resources = result.get("resources", {})
         power = result.get("power", {})
         
@@ -176,7 +241,7 @@ def aggregate_pretraining_results(results: List[Dict[str, Any]]) -> pd.DataFrame
             "total_tokens": metrics.get("total_tokens", 0),
             "tokens_per_second": metrics.get("tokens_per_second", 0),
             "target_reached": metrics.get("target_reached", False),
-            "duration_seconds": timing["duration_seconds"],
+            "duration_seconds": timing.get("duration_seconds", 0),
             "max_memory_gb": resources.get("max_memory_gb", 0),
             "avg_watt": power.get("avg_watt", 0),
             "kwh": power.get("kwh", 0),

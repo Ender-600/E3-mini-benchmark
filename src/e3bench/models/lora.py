@@ -12,7 +12,8 @@ logger = logging.getLogger(__name__)
 def setup_lora(
     model: Any,
     config: Dict[str, Any],
-    task_type: str = "classification"
+    task_type: str = "classification",
+    arch: str = "encoder"
 ) -> Any:
     """Setup LoRA configuration and apply to model."""
     
@@ -20,16 +21,41 @@ def setup_lora(
     task_type_map = {
         "classification": TaskType.SEQ_CLS,
         "causal_lm": TaskType.CAUSAL_LM,
-        "seq2seq": TaskType.SEQ_2_SEQ_LM
+        "seq2seq": TaskType.SEQ_2_SEQ_LM,
+        "feature_extraction": TaskType.FEATURE_EXTRACTION
     }
     
     peft_task_type = task_type_map.get(task_type, TaskType.SEQ_CLS)
+    
+    # Determine target modules based on architecture
+    if "lora_target_modules" in config:
+        target_modules = config["lora_target_modules"]
+    else:
+        # Use architecture-specific defaults
+        if arch == "encoder":
+            # BERT-style modules
+            target_modules = ["query", "key", "value", "dense"]
+        elif arch == "encdec":
+            # T5-style modules
+            target_modules = ["q", "k", "v", "o"]
+        elif arch == "decoder":
+            # Detect model type and use appropriate modules
+            # Check if it's GPT-2 (uses c_attn/c_proj) or LLaMA/GPT-Neo (uses q_proj/k_proj/v_proj/o_proj)
+            model_type = type(model).__name__
+            if "GPT2" in model_type or "gpt2" in str(model.config).lower():
+                # GPT-2 style: uses c_attn (query, key, value) and c_proj (output)
+                target_modules = ["c_attn", "c_proj"]
+            else:
+                # LLaMA/GPT-Neo style: separate projections
+                target_modules = ["q_proj", "k_proj", "v_proj", "o_proj"]
+        else:
+            target_modules = ["q_proj", "v_proj"]
     
     # LoRA configuration
     lora_config = LoraConfig(
         r=config.get("lora_r", 16),
         lora_alpha=config.get("lora_alpha", 32),
-        target_modules=config.get("lora_target_modules", ["q_proj", "v_proj"]),
+        target_modules=target_modules,
         lora_dropout=config.get("lora_dropout", 0.05),
         bias="none",
         task_type=peft_task_type

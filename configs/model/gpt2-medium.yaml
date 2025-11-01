@@ -1,7 +1,7 @@
-name: "gpt2-medium"
+name: "gpt2"
 arch: "decoder"
-pretrained: "gpt2-medium"
+pretrained: "gpt2"
 dtype: "fp16"
-attn_impl: "standard"
+attn_impl: "eager"
 use_lora: true
 max_length: 256
