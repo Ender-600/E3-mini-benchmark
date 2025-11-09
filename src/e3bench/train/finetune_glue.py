@@ -16,6 +16,7 @@ Architecture-specific handling:
 import argparse
 import yaml
 import time
+import math
 import torch
 import numpy as np
 from transformers import (
@@ -370,13 +371,38 @@ def finetune_superglue(
                     num_labels=num_labels
                 )
                 
-                # Reapply LoRA if needed
+                # Ensure model dtype matches training fp16 setting for consistency
+                # Convert after loading to ensure proper dtype alignment (like cont_pretrain.py)
+                train_fp16 = train_config.get("fp16", False)
+                model_dtype = next(model.parameters()).dtype
+                if train_fp16 and model_dtype != torch.float16:
+                    model = model.half()
+                    logger.info(f"Converted model to fp16 for training (was {model_dtype})")
+                elif not train_fp16 and model_dtype != torch.float32:
+                    model = model.float()
+                    logger.info(f"Converted model to fp32 for training (was {model_dtype})")
+                
+                # Reapply LoRA if needed (after dtype conversion)
                 if use_lora:
                     if arch == "encdec":
                         task_type = "seq2seq"
                     else:
                         task_type = "classification"
                     model = setup_lora(model, train_config, task_type, arch=arch)
+                    
+                    # Verify LoRA model dtype matches training setting
+                    lora_model_dtype = next(model.parameters()).dtype
+                    if train_fp16 and lora_model_dtype != torch.float16:
+                        logger.warning(f"LoRA model dtype ({lora_model_dtype}) doesn't match fp16 training setting. Converting...")
+                        model = model.half()
+                    elif not train_fp16 and lora_model_dtype != torch.float32:
+                        logger.warning(f"LoRA model dtype ({lora_model_dtype}) doesn't match fp32 training setting. Converting...")
+                        model = model.float()
+                
+                # Log model configuration before preprocessing
+                final_model_dtype = next(model.parameters()).dtype
+                logger.info(f"{task_name} seed {seed} - Model dtype: {final_model_dtype}, Training fp16: {train_fp16}, "
+                           f"LoRA: {use_lora}, Num labels: {num_labels}")
                 
                 # Preprocess data
                 train_dataset = preprocess_superglue_data(
@@ -388,18 +414,24 @@ def finetune_superglue(
                     task_config.get("max_length", 256), arch=arch
                 )
                 
+                logger.info(f"{task_name} seed {seed} - Dataset sizes: train={len(train_dataset)}, eval={len(eval_dataset)}")
+                
                 # Setup data collator based on architecture
+                # pad_to_multiple_of=8 is for fp16 optimization, only needed when fp16=True
+                pad_multiple = 8 if train_fp16 else None
+                
                 if arch == "encdec":
                     data_collator = DataCollatorForSeq2Seq(
                         tokenizer=tokenizer,
-                        pad_to_multiple_of=8,
+                        model=model,  # Pass model to ensure proper padding behavior
+                        pad_to_multiple_of=pad_multiple,
                         label_pad_token_id=-100,
                         return_tensors="pt"
                     )
                 else:
                     data_collator = DataCollatorWithPadding(
                         tokenizer=tokenizer,
-                        pad_to_multiple_of=8,
+                        pad_to_multiple_of=pad_multiple,
                         return_tensors="pt"
                     )
                 
@@ -413,7 +445,7 @@ def finetune_superglue(
                     "learning_rate": train_config.get("learning_rate", 5e-4),
                     "weight_decay": train_config.get("weight_decay", 0.01),
                     "warmup_ratio": train_config.get("warmup_ratio", 0.1),
-                    "fp16": train_config.get("fp16", True),
+                    "fp16": train_fp16,  # Use the same fp16 setting we determined above
                     "gradient_checkpointing": train_config.get("grad_checkpointing", True),
                     "save_strategy": train_config.get("save_strategy", "epoch"),
                     "eval_strategy": train_config.get("eval_strategy", "epoch"),
@@ -483,8 +515,29 @@ def finetune_superglue(
                 logger.info(f"Training {task_name} with seed {seed}...")
                 train_result = trainer.train()
                 
+                # Check training loss for numerical issues
+                train_loss = train_result.training_loss
+                if math.isnan(train_loss) or math.isinf(train_loss):
+                    logger.error(f"{task_name} seed {seed} - Training loss is NaN or Inf: {train_loss}. Skipping this run.")
+                    continue
+                if train_loss == 0.0:
+                    logger.warning(f"{task_name} seed {seed} - Training loss is exactly 0.0. This may indicate model collapse.")
+                
                 # Evaluate
                 eval_result = trainer.evaluate()
+                eval_loss = eval_result.get("eval_loss", float('inf'))
+                
+                # Check eval loss for numerical issues
+                if math.isnan(eval_loss) or math.isinf(eval_loss):
+                    logger.error(f"{task_name} seed {seed} - Eval loss is NaN or Inf: {eval_loss}. Skipping this run.")
+                    continue
+                
+                # Warn about unusually high eval loss for classification tasks
+                # For n-class classification, random baseline loss is approximately log(n)
+                if num_labels == 2 and eval_loss > 5.0:  # Binary classification, random ~0.69
+                    logger.warning(f"{task_name} seed {seed} - Eval loss ({eval_loss:.4f}) is unusually high for binary classification (random baseline ~0.69)")
+                elif num_labels == 3 and eval_loss > 5.0:  # 3-class (CB), random ~1.1
+                    logger.warning(f"{task_name} seed {seed} - Eval loss ({eval_loss:.4f}) is unusually high for 3-class classification (random baseline ~1.1)")
                 
                 train_time = time.time() - train_start
                 
@@ -509,8 +562,8 @@ def finetune_superglue(
                 }
                 runs.append(run_log)
                 
-                logger.info(f"{task_name} seed {seed} - Train Loss: {train_result.training_loss:.4f}, "
-                           f"Eval Accuracy: {eval_result.get('eval_accuracy', 0):.4f}")
+                logger.info(f"{task_name} seed {seed} - Train Loss: {train_loss:.4f}, "
+                           f"Eval Loss: {eval_loss:.4f}, Eval Accuracy: {eval_result.get('eval_accuracy', 0):.4f}")
             
             # Aggregate runs
             aggregated = aggregate_runs(runs)

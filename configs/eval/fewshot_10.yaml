@@ -1,5 +1,5 @@
 name: "fewshot_10"
-num_fewshot: 5
+num_fewshot: 10
 max_length: 512
 batch_size: 1
 limit: 100

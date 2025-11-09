@@ -8,6 +8,7 @@ from typing import Dict, Any, List
 import logging
 import os
 import seaborn as sns
+import math
 
 logger = logging.getLogger(__name__)
 
@@ -110,13 +111,34 @@ def generate_fewshot_plots(df: pd.DataFrame, output_dir: str) -> None:
     """Generate few-shot evaluation plots."""
     
     # 1. Few-shot accuracy curves
-    plt.figure(figsize=(12, 8))
+    unique_tasks = df['task'].unique()
+    num_tasks = len(unique_tasks)
+    
+    # Dynamically calculate subplot layout
+    # Aim for a roughly square layout, but prefer wider for readability
+    if num_tasks <= 4:
+        nrows, ncols = 2, 2
+    elif num_tasks <= 6:
+        nrows, ncols = 2, 3
+    elif num_tasks <= 9:
+        nrows, ncols = 3, 3
+    elif num_tasks <= 12:
+        nrows, ncols = 3, 4
+    else:
+        # For more than 12 tasks, use a more flexible layout
+        ncols = 4
+        nrows = math.ceil(num_tasks / ncols)
+    
+    # Adjust figure size based on number of subplots
+    fig_width = max(12, ncols * 4)
+    fig_height = max(8, nrows * 3)
+    plt.figure(figsize=(fig_width, fig_height))
     
     # Group by task and architecture
-    for task in df['task'].unique():
+    for idx, task in enumerate(unique_tasks):
         task_df = df[df['task'] == task]
         
-        plt.subplot(2, 2, list(df['task'].unique()).index(task) + 1)
+        plt.subplot(nrows, ncols, idx + 1)
         
         for arch in task_df['arch'].unique():
             arch_df = task_df[task_df['arch'] == arch]

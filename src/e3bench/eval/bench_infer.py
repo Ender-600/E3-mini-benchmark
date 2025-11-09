@@ -4,6 +4,7 @@ import argparse
 import yaml
 import time
 import torch
+import os
 from typing import Dict, Any, List, Tuple
 import logging
 import statistics
@@ -94,12 +95,12 @@ def benchmark_decoder_inference(
             
             # Debug logging
             if run == 0:  # Only log for first run to avoid spam
-                logger.info(f"Input: {input_text[:50]}...")
+                logger.info(f"Input: {prompt[:50]}...")
                 logger.info(f"Generated: {generated_text[:50]}...")
                 logger.info(f"Input length: {input_length}, Output length: {output_length}, Generated tokens: {generated_tokens}")
             
             if generated_tokens <= 0:
-                logger.warning(f"No tokens generated for input: {input_text[:50]}...")
+                logger.warning(f"No tokens generated for input: {prompt[:50]}...")
                 continue
                 
             latency = total_time / generated_tokens

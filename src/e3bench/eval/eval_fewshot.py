@@ -145,10 +145,21 @@ def evaluate_fewshot(
         metrics = {}
         if "results" in results:
             for task_name, task_results in results["results"].items():
-                if "acc" in task_results:
-                    metrics[f"{task_name}_accuracy"] = task_results["acc"]
-                if "acc_norm" in task_results:
-                    metrics[f"{task_name}_accuracy_norm"] = task_results["acc_norm"]
+                # Handle different key formats from lm-eval
+                # Old format: "acc", "acc_norm"
+                # New format (0.4+): "acc,none", "acc_norm,none", etc.
+                for key, value in task_results.items():
+                    if key.startswith("acc,"):
+                        # Handle new format: "acc,none" -> extract as "acc"
+                        metric_name = key.split(",")[0]  # Get "acc" from "acc,none"
+                        if metric_name == "acc":
+                            metrics[f"{task_name}_accuracy"] = value
+                        elif metric_name == "acc_norm":
+                            metrics[f"{task_name}_accuracy_norm"] = value
+                    elif key == "acc":
+                        metrics[f"{task_name}_accuracy"] = value
+                    elif key == "acc_norm":
+                        metrics[f"{task_name}_accuracy_norm"] = value
         
         # Log experiment
         end_time = time.time()

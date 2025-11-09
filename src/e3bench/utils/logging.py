@@ -59,17 +59,41 @@ class PowerMonitor:
                     capture_output=True, text=True, timeout=1.0
                 )
                 if result.returncode == 0:
-                    power = float(result.stdout.strip())
-                    if power > 0:  # Valid power reading
-                        self.power_readings.append(power)
+                    # Handle multiple GPUs: nvidia-smi returns one value per line
+                    # Sum power across all GPUs to get total system power consumption
+                    lines = result.stdout.strip().split('\n')
+                    if lines and lines[0]:  # Check if we have at least one non-empty line
+                        try:
+                            # Parse all GPU power values
+                            power_values = [float(line.strip()) for line in lines if line.strip()]
+                            if power_values:
+                                # Sum power across all GPUs for total system power consumption
+                                total_power = sum(power_values)
+                                if total_power > 0:  # Valid power reading
+                                    self.power_readings.append(total_power)
+                            else:
+                                # Fallback to CPU power estimation
+                                cpu_percent = psutil.cpu_percent(interval=0.1)
+                                estimated_power = cpu_percent * 0.1  # Rough estimate
+                                self.power_readings.append(estimated_power)
+                        except (ValueError, IndexError):
+                            # If parsing fails, fallback to CPU estimation
+                            cpu_percent = psutil.cpu_percent(interval=0.1)
+                            estimated_power = cpu_percent * 0.1
+                            self.power_readings.append(estimated_power)
+                    else:
+                        # Empty output, fallback to CPU estimation
+                        cpu_percent = psutil.cpu_percent(interval=0.1)
+                        estimated_power = cpu_percent * 0.1
+                        self.power_readings.append(estimated_power)
                 else:
-                    # Fallback to CPU power estimation
-                    cpu_percent = psutil.cpu_percent()
+                    # nvidia-smi failed, fallback to CPU power estimation
+                    cpu_percent = psutil.cpu_percent(interval=0.1)
                     estimated_power = cpu_percent * 0.1  # Rough estimate
                     self.power_readings.append(estimated_power)
-            except (subprocess.TimeoutExpired, subprocess.CalledProcessError, ValueError):
+            except (subprocess.TimeoutExpired, subprocess.CalledProcessError):
                 # Fallback to CPU estimation
-                cpu_percent = psutil.cpu_percent()
+                cpu_percent = psutil.cpu_percent(interval=0.1)
                 estimated_power = cpu_percent * 0.1
                 self.power_readings.append(estimated_power)
             except Exception:

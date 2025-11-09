@@ -233,6 +233,7 @@ bench-encoder: results/
 		--output_dir results
 
 # Continued pretraining targets
+# All models use the same token budget (1M tokens) for fair comparison
 pretrain-bert: results/
 	@echo "Continued pretraining BERT..."
 	python -m src.e3bench.train.cont_pretrain \
@@ -240,6 +241,7 @@ pretrain-bert: results/
 		--train_cfg configs/train/lora.yaml \
 		--dataset wikitext \
 		--target_loss 2.0 \
+		--token_budget 1000000 \
 		--output_dir results
 
 pretrain-t5: results/
@@ -249,6 +251,7 @@ pretrain-t5: results/
 		--train_cfg configs/train/lora.yaml \
 		--dataset wikitext \
 		--target_loss 2.0 \
+		--token_budget 1000000 \
 		--output_dir results
 
 pretrain-gpt2: results/
@@ -258,4 +261,5 @@ pretrain-gpt2: results/
 		--train_cfg configs/train/lora.yaml \
 		--dataset wikitext \
 		--target_loss 2.0 \
+		--token_budget 1000000 \
 		--output_dir results
