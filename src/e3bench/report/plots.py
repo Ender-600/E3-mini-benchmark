@@ -72,15 +72,18 @@ def generate_training_plots(df: pd.DataFrame, output_dir: str) -> None:
     # 2. Training efficiency (time vs accuracy)
     plt.figure(figsize=(10, 6))
     
-    for arch in df['arch'].unique():
+    # Use different markers for each architecture
+    markers = ['o', 's', '^', 'D', 'v', '<', '>', 'p', '*', 'h']
+    
+    for idx, arch in enumerate(df['arch'].unique()):
         arch_df = df[df['arch'] == arch]
         plt.scatter(arch_df['duration_seconds'], arch_df['accuracy'], 
-                   label=arch, alpha=0.7, s=60)
+                   label=arch, alpha=0.7, s=80, marker=markers[idx % len(markers)])
     
     plt.xlabel('Training Time (seconds)', fontsize=12)
     plt.ylabel('Accuracy', fontsize=12)
     plt.title('Training Efficiency: Time vs Accuracy', fontsize=14, fontweight='bold')
-    plt.legend()
+    plt.legend(fontsize=10)
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir, 'training_efficiency.png'), dpi=300, bbox_inches='tight')
@@ -114,8 +117,7 @@ def generate_fewshot_plots(df: pd.DataFrame, output_dir: str) -> None:
     unique_tasks = df['task'].unique()
     num_tasks = len(unique_tasks)
     
-    # Dynamically calculate subplot layout
-    # Aim for a roughly square layout, but prefer wider for readability
+    # Dynamically calculate subplot layout with better spacing
     if num_tasks <= 4:
         nrows, ncols = 2, 2
     elif num_tasks <= 6:
@@ -126,19 +128,20 @@ def generate_fewshot_plots(df: pd.DataFrame, output_dir: str) -> None:
         nrows, ncols = 3, 4
     else:
         # For more than 12 tasks, use a more flexible layout
-        ncols = 4
+        ncols = 5  # Increased from 4 to make each subplot wider
         nrows = math.ceil(num_tasks / ncols)
     
-    # Adjust figure size based on number of subplots
-    fig_width = max(12, ncols * 4)
-    fig_height = max(8, nrows * 3)
-    plt.figure(figsize=(fig_width, fig_height))
+    # Adjust figure size based on number of subplots - make it much larger for many tasks
+    fig_width = max(20, ncols * 5)  # Increased from 4 to 5
+    fig_height = max(12, nrows * 4)  # Increased from 3 to 4
+    
+    fig = plt.figure(figsize=(fig_width, fig_height))
     
     # Group by task and architecture
     for idx, task in enumerate(unique_tasks):
         task_df = df[df['task'] == task]
         
-        plt.subplot(nrows, ncols, idx + 1)
+        ax = plt.subplot(nrows, ncols, idx + 1)
         
         for arch in task_df['arch'].unique():
             arch_df = task_df[task_df['arch'] == arch]
@@ -149,30 +152,53 @@ def generate_fewshot_plots(df: pd.DataFrame, output_dir: str) -> None:
             sorted_data = sorted(zip(num_fewshot, accuracy))
             num_fewshot_sorted, accuracy_sorted = zip(*sorted_data)
             
-            plt.plot(num_fewshot_sorted, accuracy_sorted, marker='o', label=arch, linewidth=2)
+            ax.plot(num_fewshot_sorted, accuracy_sorted, marker='o', label=arch, linewidth=2, markersize=6)
         
-        plt.xlabel('Number of Few-shot Examples', fontsize=10)
-        plt.ylabel('Accuracy', fontsize=10)
-        plt.title(f'{task} Few-shot Performance', fontsize=12, fontweight='bold')
-        plt.legend()
-        plt.grid(True, alpha=0.3)
+        # Smaller font sizes for many subplots
+        title_fontsize = 8 if num_tasks > 20 else 10
+        label_fontsize = 7 if num_tasks > 20 else 9
+        legend_fontsize = 6 if num_tasks > 20 else 8
+        
+        ax.set_xlabel('Few-shot Examples', fontsize=label_fontsize)
+        ax.set_ylabel('Accuracy', fontsize=label_fontsize)
+        ax.set_title(task, fontsize=title_fontsize, fontweight='bold', pad=3)
+        ax.legend(fontsize=legend_fontsize, loc='best')
+        ax.grid(True, alpha=0.3)
+        ax.tick_params(labelsize=label_fontsize-1)
     
-    plt.suptitle('Few-shot Learning Curves by Task and Architecture', fontsize=14, fontweight='bold')
-    plt.tight_layout()
+    plt.suptitle('Few-shot Learning Curves by Task and Architecture', 
+                 fontsize=16, fontweight='bold', y=0.995)
+    plt.tight_layout(rect=[0, 0, 1, 0.99], h_pad=2.5, w_pad=2.0)
     plt.savefig(os.path.join(output_dir, 'fewshot_curves.png'), dpi=300, bbox_inches='tight')
     plt.close()
     
     # 2. Architecture comparison heatmap
-    plt.figure(figsize=(10, 6))
-    
     # Create pivot table for heatmap
     pivot_data = df.groupby(['arch', 'task'])['accuracy'].mean().unstack()
     
+    # Adjust figure size based on number of tasks
+    num_tasks_heatmap = len(pivot_data.columns)
+    fig_width = max(16, num_tasks_heatmap * 0.4)  # Scale width with number of tasks
+    fig_height = max(6, len(pivot_data.index) * 1.5)  # Scale height with number of architectures
+    
+    fig, ax = plt.subplots(figsize=(fig_width, fig_height))
+    
+    # Adjust annotation font size based on number of tasks
+    annot_fontsize = 6 if num_tasks_heatmap > 30 else 8
+    
     sns.heatmap(pivot_data, annot=True, fmt='.3f', cmap='viridis', 
-                cbar_kws={'label': 'Accuracy'})
-    plt.title('Few-shot Accuracy Heatmap: Architecture vs Task', fontsize=14, fontweight='bold')
-    plt.xlabel('Task', fontsize=12)
-    plt.ylabel('Architecture', fontsize=12)
+                cbar_kws={'label': 'Accuracy'}, ax=ax,
+                annot_kws={'fontsize': annot_fontsize})
+    
+    ax.set_title('Few-shot Accuracy Heatmap: Architecture vs Task', 
+                 fontsize=14, fontweight='bold', pad=15)
+    ax.set_xlabel('Task', fontsize=12)
+    ax.set_ylabel('Architecture', fontsize=12)
+    
+    # Rotate x-axis labels for better readability
+    plt.xticks(rotation=90, ha='right', fontsize=8)
+    plt.yticks(rotation=0, fontsize=10)
+    
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir, 'fewshot_heatmap.png'), dpi=300, bbox_inches='tight')
     plt.close()
@@ -220,15 +246,18 @@ def generate_inference_plots(df: pd.DataFrame, output_dir: str) -> None:
     # 3. Memory vs Performance trade-off
     plt.figure(figsize=(10, 6))
     
-    for arch in df['arch'].unique():
+    # Use different markers for each architecture
+    markers = ['o', 's', '^', 'D', 'v']
+    
+    for idx, arch in enumerate(df['arch'].unique()):
         arch_df = df[df['arch'] == arch]
         plt.scatter(arch_df['max_memory_gb'], arch_df['throughput_tokens_per_sec'], 
-                   label=arch, alpha=0.7, s=100)
+                   label=arch, alpha=0.7, s=120, marker=markers[idx % len(markers)])
     
     plt.xlabel('Max Memory Usage (GB)', fontsize=12)
     plt.ylabel('Throughput (tokens/sec)', fontsize=12)
     plt.title('Memory vs Performance Trade-off', fontsize=14, fontweight='bold')
-    plt.legend()
+    plt.legend(fontsize=10)
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir, 'inference_memory_tradeoff.png'), dpi=300, bbox_inches='tight')
@@ -242,15 +271,18 @@ def generate_pretraining_plots(df: pd.DataFrame, output_dir: str) -> None:
     plt.figure(figsize=(12, 5))
     
     plt.subplot(1, 2, 1)
-    for arch in df['arch'].unique():
+    # Use different markers for each architecture
+    markers = ['o', 's', '^', 'D', 'v']
+    
+    for idx, arch in enumerate(df['arch'].unique()):
         arch_df = df[df['arch'] == arch]
         plt.scatter(arch_df['epochs_trained'], arch_df['tokens_per_second'], 
-                   label=arch, alpha=0.7, s=100)
+                   label=arch, alpha=0.7, s=120, marker=markers[idx % len(markers)])
     
     plt.xlabel('Epochs Trained', fontsize=12)
     plt.ylabel('Tokens per Second', fontsize=12)
     plt.title('Training Efficiency: Epochs vs Speed', fontsize=14, fontweight='bold')
-    plt.legend()
+    plt.legend(fontsize=10)
     plt.grid(True, alpha=0.3)
     
     # 2. Target loss achievement
@@ -273,19 +305,37 @@ def generate_pretraining_plots(df: pd.DataFrame, output_dir: str) -> None:
     plt.close()
     
     # 3. Energy efficiency
-    plt.figure(figsize=(10, 6))
+    fig, ax = plt.subplots(figsize=(10, 6))
     
-    for arch in df['arch'].unique():
+    # Check if we have any valid kwh data
+    has_data = False
+    markers = ['o', 's', '^', 'D', 'v']
+    
+    for idx, arch in enumerate(df['arch'].unique()):
         arch_df = df[df['arch'] == arch]
-        if 'kwh' in arch_df.columns and arch_df['kwh'].notna().any():
-            plt.scatter(arch_df['kwh'], arch_df['tokens_per_second'], 
-                       label=arch, alpha=0.7, s=100)
+        if 'kwh' in arch_df.columns:
+            # Filter out None/NaN values
+            valid_df = arch_df[arch_df['kwh'].notna()]
+            if len(valid_df) > 0:
+                ax.scatter(valid_df['kwh'], valid_df['tokens_per_second'], 
+                          label=arch, alpha=0.7, s=120, marker=markers[idx % len(markers)])
+                has_data = True
     
-    plt.xlabel('Energy Consumption (kWh)', fontsize=12)
-    plt.ylabel('Training Speed (tokens/sec)', fontsize=12)
-    plt.title('Energy Efficiency: Power vs Speed', fontsize=14, fontweight='bold')
-    plt.legend()
-    plt.grid(True, alpha=0.3)
+    if has_data:
+        ax.set_xlabel('Energy Consumption (kWh)', fontsize=12)
+        ax.set_ylabel('Training Speed (tokens/sec)', fontsize=12)
+        ax.set_title('Energy Efficiency: Power vs Speed', fontsize=14, fontweight='bold')
+        ax.legend(fontsize=10)
+        ax.grid(True, alpha=0.3)
+    else:
+        # If no data, show a message
+        ax.text(0.5, 0.5, 'No energy consumption data available\n(Power monitoring may have failed)', 
+               ha='center', va='center', fontsize=14, transform=ax.transAxes,
+               bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+        ax.set_xlabel('Energy Consumption (kWh)', fontsize=12)
+        ax.set_ylabel('Training Speed (tokens/sec)', fontsize=12)
+        ax.set_title('Energy Efficiency: Power vs Speed', fontsize=14, fontweight='bold')
+    
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir, 'pretraining_energy_efficiency.png'), dpi=300, bbox_inches='tight')
     plt.close()
