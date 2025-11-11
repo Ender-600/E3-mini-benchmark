@@ -53,3 +53,64 @@ def save_experiment_result(
     filepath = os.path.join(results_dir, f"{exp_id}.json")
     save_json(result, filepath)
     return filepath
+
+
+def sync_to_latest(
+    result: Dict[str, Any],
+    latest_dir: str = "latest"
+) -> str:
+    """
+    Sync experiment result to latest/ directory.
+    
+    This maintains only the most recent experiment of each type/model combination.
+    The filename is determined by experiment type and model name to enable automatic
+    overwriting of previous results.
+    
+    Args:
+        result: Experiment result dictionary containing exp_id, config, etc.
+        latest_dir: Base directory for latest results (default: "latest")
+    
+    Returns:
+        Path to the saved file in latest/
+    """
+    exp_id = result.get("exp_id", "unknown")
+    
+    # Determine experiment type from exp_id
+    if "cont_pretrain" in exp_id:
+        exp_type = "cont_pretrain"
+    elif "superglue" in exp_id:
+        exp_type = "superglue"
+    elif "fewshot" in exp_id:
+        exp_type = "fewshot"
+    elif "inference" in exp_id:
+        exp_type = "inference"
+    else:
+        exp_type = "other"
+    
+    # Extract model name from config (support both old and new format)
+    config = result.get("config", {})
+    model_config = config.get("model", {})
+    
+    # If model_config is empty, try old format (model at top level)
+    if not model_config:
+        model_config = result.get("model", {})
+    
+    model_name = model_config.get("name", "unknown")
+    
+    # For few-shot, include num_fewshot in filename to distinguish 0/5/10 shot
+    if exp_type == "fewshot":
+        eval_config = config.get("eval", {})
+        num_fewshot = eval_config.get("num_fewshot", 0)
+        filename = f"{model_name}-{num_fewshot}shot.json"
+    else:
+        filename = f"{model_name}.json"
+    
+    # Create directory structure: latest/<exp_type>/
+    exp_type_dir = os.path.join(latest_dir, exp_type)
+    os.makedirs(exp_type_dir, exist_ok=True)
+    
+    # Save to latest directory
+    filepath = os.path.join(exp_type_dir, filename)
+    save_json(result, filepath)
+    
+    return filepath

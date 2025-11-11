@@ -35,7 +35,7 @@ from sklearn.metrics import f1_score
 
 from ..utils.logging import setup_logging, PowerMonitor
 from ..utils.seed import set_seed
-from ..utils.io import generate_exp_id, save_experiment_result
+from ..utils.io import generate_exp_id, save_experiment_result, sync_to_latest
 from ..data.superglue import load_superglue_data, get_superglue_example_format
 from ..models.load_hf import load_model_and_tokenizer
 from ..models.lora import setup_lora, save_lora_weights, get_lora_parameters
@@ -598,6 +598,10 @@ def finetune_superglue(
         
         # Save results
         save_experiment_result(exp_id, experiment_log, output_dir)
+        
+        # Sync to latest directory
+        latest_path = sync_to_latest(experiment_log)
+        logger.info(f"Synced to latest: {latest_path}")
         
         logger.info(f"Experiment completed: {exp_id}")
         return experiment_log

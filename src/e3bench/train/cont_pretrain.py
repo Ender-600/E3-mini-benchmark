@@ -20,7 +20,7 @@ import os
 
 from ..utils.logging import setup_logging, log_experiment_info, PowerMonitor
 from ..utils.seed import set_seed
-from ..utils.io import generate_exp_id, save_experiment_result
+from ..utils.io import generate_exp_id, save_experiment_result, sync_to_latest
 from ..models.load_hf import load_model_and_tokenizer
 from ..models.lora import setup_lora, save_lora_weights, get_lora_parameters
 
@@ -316,6 +316,28 @@ def preprocess_pretraining_data(
     # Tokenize and remove original columns
     dataset = dataset.map(tokenize_function, batched=True, remove_columns=dataset.column_names)
     
+    # Filter out empty sequences which can lead to NaN losses during training
+    pad_token_id = tokenizer.pad_token_id
+    
+    def has_valid_tokens(example):
+        input_ids = example.get("input_ids", [])
+        if isinstance(input_ids, list):
+            has_tokens = len(input_ids) > 0 and any(token != pad_token_id for token in input_ids)
+        else:
+            has_tokens = False
+        
+        if arch == "encdec":
+            labels = example.get("labels", [])
+            if isinstance(labels, list):
+                has_label_tokens = len(labels) > 0 and any(token != pad_token_id for token in labels)
+            else:
+                has_label_tokens = False
+            return has_tokens and has_label_tokens
+        
+        return has_tokens
+    
+    dataset = dataset.filter(has_valid_tokens)
+    
     return dataset
 
 
@@ -600,6 +622,10 @@ def continued_pretraining(
         
         # Save results
         save_experiment_result(exp_id, experiment_log, output_dir)
+        
+        # Sync to latest directory
+        latest_path = sync_to_latest(experiment_log)
+        logger.info(f"Synced to latest: {latest_path}")
         
         logger.info(f"Continued pretraining completed: {exp_id}")
         final_loss_str = f"{final_eval_loss:.4f}" if not math.isnan(final_eval_loss) and not math.isinf(final_eval_loss) else "NaN/Inf"

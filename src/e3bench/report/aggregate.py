@@ -12,12 +12,31 @@ logger = logging.getLogger(__name__)
 
 
 def load_experiment_results(results_dir: str) -> List[Dict[str, Any]]:
-    """Load all experiment results from JSON files."""
+    """
+    Load all experiment results from JSON files.
+    
+    Supports both flat directory structure (results/*.json) and 
+    organized structure (latest/<exp_type>/*.json).
+    """
     
     results = []
-    json_files = glob.glob(os.path.join(results_dir, "*.json"))
     
-    logger.info(f"Found {len(json_files)} result files")
+    # Check if this is a flat directory or organized structure
+    if os.path.exists(os.path.join(results_dir, "cont_pretrain")) or \
+       os.path.exists(os.path.join(results_dir, "superglue")) or \
+       os.path.exists(os.path.join(results_dir, "fewshot")) or \
+       os.path.exists(os.path.join(results_dir, "inference")):
+        # Organized structure: load from subdirectories
+        json_files = []
+        for subdir in ["cont_pretrain", "superglue", "fewshot", "inference"]:
+            subdir_path = os.path.join(results_dir, subdir)
+            if os.path.exists(subdir_path):
+                json_files.extend(glob.glob(os.path.join(subdir_path, "*.json")))
+    else:
+        # Flat structure: load all JSON files from root
+        json_files = glob.glob(os.path.join(results_dir, "*.json"))
+    
+    logger.info(f"Found {len(json_files)} result files in {results_dir}")
     
     for json_file in json_files:
         try:

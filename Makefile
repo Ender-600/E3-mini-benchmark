@@ -1,6 +1,6 @@
 # E³ Mini-Benchmark Makefile
 
-.PHONY: help env train eval bench report figs clean all eval-all-models fewshot-comparison \
+.PHONY: help env train eval bench report report-all figs clean all eval-all-models fewshot-comparison \
 	eval-bert-0shot eval-bert-5shot eval-bert-10shot \
 	eval-gpt2-0shot eval-gpt2-5shot eval-gpt2-10shot \
 	eval-t5-0shot eval-t5-5shot eval-t5-10shot
@@ -12,7 +12,8 @@ help:
 	@echo "  train            - Run SuperGLUE fine-tuning (LoRA)"
 	@echo "  eval             - Run few-shot evaluation"
 	@echo "  bench            - Run inference benchmarking"
-	@echo "  report           - Aggregate results and run significance tests"
+	@echo "  report           - Aggregate latest results and run significance tests"
+	@echo "  report-all       - Aggregate all historical results"
 	@echo "  figs             - Generate plots"
 	@echo "  clean            - Clean up generated files"
 	@echo "  all              - Run complete benchmark pipeline"
@@ -59,9 +60,19 @@ bench: results/
 		--bench_cfg configs/bench/infer_seq2seq.yaml \
 		--output_dir results
 
-# Aggregate results and run significance tests
+# Aggregate results and run significance tests (using latest/ directory)
 report: tables/
-	@echo "Aggregating results..."
+	@echo "Aggregating latest results..."
+	python -m src.e3bench.report.aggregate \
+		--results_dir latest \
+		--out_dir tables
+	@echo "Running significance tests..."
+	python -m src.e3bench.report.signif_test \
+		--tables tables
+
+# Aggregate all historical results (using results/ directory)
+report-all: tables/
+	@echo "Aggregating all historical results..."
 	python -m src.e3bench.report.aggregate \
 		--results_dir results \
 		--out_dir tables

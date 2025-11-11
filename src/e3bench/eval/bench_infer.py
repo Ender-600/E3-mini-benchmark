@@ -11,7 +11,7 @@ import statistics
 
 from ..utils.logging import setup_logging, log_experiment_info, PowerMonitor
 from ..utils.seed import set_seed
-from ..utils.io import generate_exp_id, save_experiment_result
+from ..utils.io import generate_exp_id, save_experiment_result, sync_to_latest
 from ..models.load_hf import load_model_and_tokenizer
 from ..models.lora import load_lora_weights
 
@@ -368,6 +368,10 @@ def benchmark_inference(
         
         # Save results
         save_experiment_result(exp_id, experiment_log, output_dir)
+        
+        # Sync to latest directory
+        latest_path = sync_to_latest(experiment_log)
+        logger.info(f"Synced to latest: {latest_path}")
         
         logger.info(f"Inference benchmark completed: {exp_id}")
         for metric, value in metrics.items():
