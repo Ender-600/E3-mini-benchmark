@@ -99,17 +99,20 @@ def aggregate_training_results(results: List[Dict[str, Any]]) -> pd.DataFrame:
             eval_accuracy = None
             eval_loss = None
             train_loss = None
+            macro_f1 = None
             
             # New format: metrics directly contain eval_accuracy, eval_loss
             if "eval_accuracy" in task_metrics:
                 eval_accuracy = task_metrics["eval_accuracy"]
                 eval_loss = task_metrics.get("eval_loss", 0)
                 train_loss = task_metrics.get("train_loss", 0)
+                macro_f1 = task_metrics.get("macro_f1")
             # Old format: metrics contain "mean" sub-dict with eval_accuracy
             elif "mean" in task_metrics and isinstance(task_metrics["mean"], dict):
                 mean_metrics = task_metrics["mean"]
                 eval_accuracy = mean_metrics.get("eval_accuracy")
                 eval_loss = mean_metrics.get("eval_loss", 0)
+                macro_f1 = mean_metrics.get("eval_macro_f1")
                 # Old format doesn't have train_loss in the aggregated results
             
             if eval_accuracy is not None:
@@ -127,6 +130,7 @@ def aggregate_training_results(results: List[Dict[str, Any]]) -> pd.DataFrame:
                     "arch": model_config.get("arch", "unknown"),
                     "task": task_name,
                     "accuracy": eval_accuracy,
+                    "macro_f1": macro_f1 if macro_f1 is not None else "",
                     "train_loss": train_loss or 0,
                     "eval_loss": eval_loss or 0,
                     "duration_seconds": duration_seconds,
@@ -209,21 +213,52 @@ def aggregate_inference_results(results: List[Dict[str, Any]]) -> pd.DataFrame:
         resources = result.get("resources", {})
         power = result.get("power", {})
         
-        inference_data.append({
-            "exp_id": exp_id,
-            "model": model_config["name"],
-            "arch": model_config["arch"],
-            "latency_ms": metrics.get("first_token_latency_ms", metrics.get("forward_pass_latency_ms", 0)),
-            "latency_std_ms": metrics.get("latency_std_ms", 0),
-            "throughput_tokens_per_sec": metrics.get("throughput_tokens_per_sec", 0),
-            "throughput_std": metrics.get("throughput_std", 0),
-            "max_memory_gb": metrics.get("max_memory_gb", resources.get("max_memory_gb", 0)),
-            "current_memory_gb": metrics.get("current_memory_gb", 0),
-            "duration_seconds": timing.get("duration_seconds", 0),
-            "avg_watt": power.get("avg_watt", 0),
-            "kwh": power.get("kwh", 0),
-            "num_runs": metrics.get("total_runs", 0)
-        })
+        # Check if this is a scaling benchmark (metrics will be dict of dicts)
+        is_scaling = "inference_scaling" in exp_id or (
+            isinstance(metrics, dict) and 
+            any(isinstance(v, dict) for v in metrics.values())
+        )
+        
+        if is_scaling:
+            # Handle scaling results: one row per context length
+            for ctx_len, ctx_metrics in metrics.items():
+                if not isinstance(ctx_metrics, dict):
+                    continue
+                
+                inference_data.append({
+                    "exp_id": exp_id,
+                    "model": model_config["name"],
+                    "arch": model_config["arch"],
+                    "context_length": int(ctx_len),
+                    "latency_ms": ctx_metrics.get("first_token_latency_ms", ctx_metrics.get("latency_ms", 0)),
+                    "latency_std_ms": ctx_metrics.get("latency_std_ms", 0),
+                    "throughput_tokens_per_sec": ctx_metrics.get("throughput_tokens_per_sec", 0),
+                    "throughput_std": ctx_metrics.get("throughput_std", 0),
+                    "max_memory_gb": ctx_metrics.get("max_memory_gb", 0),
+                    "current_memory_gb": ctx_metrics.get("current_memory_gb", 0),
+                    "duration_seconds": timing.get("duration_seconds", 0),
+                    "avg_watt": power.get("avg_watt", 0),
+                    "kwh": power.get("kwh", 0),
+                    "num_runs": ctx_metrics.get("total_runs", 0)
+                })
+        else:
+            # Handle single-point results
+            inference_data.append({
+                "exp_id": exp_id,
+                "model": model_config["name"],
+                "arch": model_config["arch"],
+                "context_length": bench_config.get("max_length", 512),  # Add default context length
+                "latency_ms": metrics.get("first_token_latency_ms", metrics.get("forward_pass_latency_ms", 0)),
+                "latency_std_ms": metrics.get("latency_std_ms", 0),
+                "throughput_tokens_per_sec": metrics.get("throughput_tokens_per_sec", 0),
+                "throughput_std": metrics.get("throughput_std", 0),
+                "max_memory_gb": metrics.get("max_memory_gb", resources.get("max_memory_gb", 0)),
+                "current_memory_gb": metrics.get("current_memory_gb", 0),
+                "duration_seconds": timing.get("duration_seconds", 0),
+                "avg_watt": power.get("avg_watt", 0),
+                "kwh": power.get("kwh", 0),
+                "num_runs": metrics.get("total_runs", 0)
+            })
     
     return pd.DataFrame(inference_data)
 

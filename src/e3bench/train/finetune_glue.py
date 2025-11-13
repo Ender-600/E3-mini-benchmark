@@ -558,6 +558,7 @@ def finetune_superglue(
                     "train_time_seconds": train_time,
                     "max_memory_gb": max_memory_gb,
                     "gpu_name": gpu_name,
+                    "train_loss": train_loss,  # Add training loss to results
                     **eval_result  # Include all eval metrics
                 }
                 runs.append(run_log)

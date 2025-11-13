@@ -286,6 +286,69 @@ def benchmark_encoder_inference(
     }
 
 
+def benchmark_with_context_scaling(
+    model: Any,
+    tokenizer: Any,
+    config: Dict[str, Any],
+    arch: str
+) -> Dict[str, Any]:
+    """
+    Benchmark model across multiple context lengths to generate latency curve.
+    
+    Args:
+        model: The model to benchmark
+        tokenizer: The tokenizer
+        config: Benchmark configuration with context_lengths list
+        arch: Model architecture (decoder, encdec, encoder)
+    
+    Returns:
+        Dictionary with per-context-length results
+    """
+    context_lengths = config.get("context_lengths", [128, 256, 512, 1024])
+    num_tokens = config.get("num_tokens", 50)
+    num_runs = config.get("num_runs", 3)
+    warmup_runs = config.get("warmup_runs", 1)
+    
+    results_by_length = {}
+    
+    logger.info(f"Running context length scaling test: {context_lengths}")
+    
+    for ctx_len in context_lengths:
+        logger.info(f"Testing context length: {ctx_len}")
+        
+        # Create modified config for this context length
+        ctx_config = config.copy()
+        ctx_config["max_length"] = ctx_len
+        ctx_config["num_runs"] = num_runs
+        ctx_config["warmup_runs"] = warmup_runs
+        
+        # Reset GPU stats for each context length
+        if torch.cuda.is_available():
+            torch.cuda.reset_peak_memory_stats()
+        
+        # Run benchmark for this context length
+        if arch == "decoder":
+            metrics = benchmark_decoder_inference(model, tokenizer, ctx_config)
+        elif arch == "encdec":
+            metrics = benchmark_seq2seq_inference(model, tokenizer, ctx_config)
+        elif arch == "encoder":
+            metrics = benchmark_encoder_inference(model, tokenizer, ctx_config)
+        else:
+            raise ValueError(f"Unknown architecture: {arch}")
+        
+        # Add memory usage for this context length
+        if torch.cuda.is_available():
+            metrics["max_memory_gb"] = torch.cuda.max_memory_allocated(0) / 1024**3
+            metrics["current_memory_gb"] = torch.cuda.memory_allocated(0) / 1024**3
+        
+        # Store results
+        results_by_length[ctx_len] = metrics
+        
+        logger.info(f"Context {ctx_len}: Latency={metrics.get('first_token_latency_ms', metrics.get('latency_ms', 0)):.2f}ms")
+    
+    return results_by_length
+
+
 def benchmark_inference(
     model_cfg_path: str,
     bench_cfg_path: str,
@@ -305,6 +368,12 @@ def benchmark_inference(
     # Generate experiment ID
     exp_id = generate_exp_id("inference")
     logger.info(f"Starting inference benchmark: {exp_id}")
+    
+    # Check if this is a scaling benchmark
+    is_scaling = "context_lengths" in bench_config
+    if is_scaling:
+        exp_id = generate_exp_id("inference_scaling")
+        logger.info(f"Running context length scaling benchmark: {exp_id}")
     
     # Start power monitoring
     power_monitor = PowerMonitor()
@@ -341,17 +410,21 @@ def benchmark_inference(
         arch = model_config["arch"]
         logger.info(f"Benchmarking {arch} model...")
         
-        if arch == "decoder":
-            metrics = benchmark_decoder_inference(model, tokenizer, bench_config)
-        elif arch == "encdec":
-            metrics = benchmark_seq2seq_inference(model, tokenizer, bench_config)
-        elif arch == "encoder":
-            metrics = benchmark_encoder_inference(model, tokenizer, bench_config)
+        # Choose between scaling and single-point benchmark
+        if is_scaling:
+            metrics = benchmark_with_context_scaling(model, tokenizer, bench_config, arch)
         else:
-            raise ValueError(f"Unknown architecture: {arch}")
+            if arch == "decoder":
+                metrics = benchmark_decoder_inference(model, tokenizer, bench_config)
+            elif arch == "encdec":
+                metrics = benchmark_seq2seq_inference(model, tokenizer, bench_config)
+            elif arch == "encoder":
+                metrics = benchmark_encoder_inference(model, tokenizer, bench_config)
+            else:
+                raise ValueError(f"Unknown architecture: {arch}")
         
-        # Add VRAM usage
-        if torch.cuda.is_available():
+        # Add VRAM usage for non-scaling benchmarks
+        if not is_scaling and torch.cuda.is_available():
             metrics["max_memory_gb"] = torch.cuda.max_memory_allocated(0) / 1024**3
             metrics["current_memory_gb"] = torch.cuda.memory_allocated(0) / 1024**3
         
@@ -374,8 +447,18 @@ def benchmark_inference(
         logger.info(f"Synced to latest: {latest_path}")
         
         logger.info(f"Inference benchmark completed: {exp_id}")
-        for metric, value in metrics.items():
-            logger.info(f"{metric}: {value:.4f}")
+        
+        # Log results (handle both scaling and non-scaling formats)
+        if is_scaling:
+            logger.info("Context Length Scaling Results:")
+            for ctx_len, ctx_metrics in metrics.items():
+                latency_key = 'first_token_latency_ms' if 'first_token_latency_ms' in ctx_metrics else 'latency_ms'
+                latency = ctx_metrics.get(latency_key, 0)
+                logger.info(f"  {ctx_len} tokens: {latency:.2f}ms")
+        else:
+            for metric, value in metrics.items():
+                if isinstance(value, (int, float)):
+                    logger.info(f"{metric}: {value:.4f}")
         
         return experiment_log
         

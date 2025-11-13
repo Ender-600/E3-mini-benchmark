@@ -207,7 +207,14 @@ def generate_fewshot_plots(df: pd.DataFrame, output_dir: str) -> None:
 def generate_inference_plots(df: pd.DataFrame, output_dir: str) -> None:
     """Generate inference benchmarking plots."""
     
-    # 1. Latency comparison
+    # Check if we have scaling data (multiple context lengths per architecture)
+    has_scaling_data = 'context_length' in df.columns and len(df.groupby(['arch', 'context_length'])) > len(df['arch'].unique())
+    
+    if has_scaling_data:
+        # Generate latency curve for scaling data
+        generate_latency_curve(df, output_dir)
+    
+    # 1. Latency comparison (aggregate by architecture)
     plt.figure(figsize=(12, 5))
     
     plt.subplot(1, 2, 1)
@@ -262,6 +269,81 @@ def generate_inference_plots(df: pd.DataFrame, output_dir: str) -> None:
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir, 'inference_memory_tradeoff.png'), dpi=300, bbox_inches='tight')
     plt.close()
+
+
+def generate_latency_curve(df: pd.DataFrame, output_dir: str) -> None:
+    """Generate latency vs context length curve."""
+    
+    # Filter to only scaling experiments
+    scaling_df = df[df['context_length'].notna()].copy()
+    
+    if scaling_df.empty:
+        logger.warning("No scaling data found for latency curve")
+        return
+    
+    # Create figure with two subplots
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
+    
+    # Define colors and markers for architectures
+    arch_styles = {
+        'encoder': {'color': '#2ecc71', 'marker': 'o', 'label': 'Encoder (BERT)'},
+        'decoder': {'color': '#e74c3c', 'marker': 's', 'label': 'Decoder (GPT-2)'},
+        'encdec': {'color': '#3498db', 'marker': '^', 'label': 'Encoder-Decoder (T5)'}
+    }
+    
+    # Plot 1: Latency vs Context Length
+    for arch in scaling_df['arch'].unique():
+        arch_df = scaling_df[scaling_df['arch'] == arch]
+        # Group by context_length and aggregate
+        grouped = arch_df.groupby('context_length').agg({
+            'latency_ms': 'mean',
+            'latency_std_ms': 'mean'
+        }).reset_index()
+        
+        style = arch_styles.get(arch, {'color': 'gray', 'marker': 'o', 'label': arch})
+        
+        ax1.plot(grouped['context_length'], grouped['latency_ms'], 
+                marker=style['marker'], color=style['color'], 
+                label=style['label'], linewidth=2, markersize=8)
+        
+        # Add error bars if available
+        if grouped['latency_std_ms'].sum() > 0:
+            ax1.fill_between(grouped['context_length'], 
+                            grouped['latency_ms'] - grouped['latency_std_ms'],
+                            grouped['latency_ms'] + grouped['latency_std_ms'],
+                            color=style['color'], alpha=0.2)
+    
+    ax1.set_xlabel('Context Length (tokens)', fontsize=12)
+    ax1.set_ylabel('Latency (ms)', fontsize=12)
+    ax1.set_title('Inference Latency vs Context Length', fontsize=14, fontweight='bold')
+    ax1.legend(fontsize=10, loc='upper left')
+    ax1.grid(True, alpha=0.3, linestyle='--')
+    ax1.set_xscale('linear')
+    
+    # Plot 2: Memory Usage vs Context Length
+    for arch in scaling_df['arch'].unique():
+        arch_df = scaling_df[scaling_df['arch'] == arch]
+        grouped = arch_df.groupby('context_length').agg({
+            'max_memory_gb': 'mean'
+        }).reset_index()
+        
+        style = arch_styles.get(arch, {'color': 'gray', 'marker': 'o', 'label': arch})
+        
+        ax2.plot(grouped['context_length'], grouped['max_memory_gb'], 
+                marker=style['marker'], color=style['color'], 
+                label=style['label'], linewidth=2, markersize=8)
+    
+    ax2.set_xlabel('Context Length (tokens)', fontsize=12)
+    ax2.set_ylabel('Peak Memory (GB)', fontsize=12)
+    ax2.set_title('Memory Usage vs Context Length', fontsize=14, fontweight='bold')
+    ax2.legend(fontsize=10, loc='upper left')
+    ax2.grid(True, alpha=0.3, linestyle='--')
+    
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, 'latency_curve.png'), dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    logger.info("Generated latency curve plot")
 
 
 def generate_pretraining_plots(df: pd.DataFrame, output_dir: str) -> None:

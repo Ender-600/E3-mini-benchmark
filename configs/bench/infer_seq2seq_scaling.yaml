@@ -1,0 +1,9 @@
+name: "infer_seq2seq_scaling"
+arch: "encdec"
+# Test multiple context lengths to generate latency curve
+context_lengths: [128, 256, 512, 1024]
+num_tokens: 50  # Generate 50 tokens for each test
+batch_size: 1
+num_runs: 3  # Fewer runs per length since we test multiple lengths
+warmup_runs: 1
+
