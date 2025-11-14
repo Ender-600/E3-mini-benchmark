@@ -8,7 +8,7 @@ A comprehensive benchmark for comparing **encoder-only**, **encoder-decoder**, a
 
 ## Hardware Requirements
 
-- Single NVIDIA V100 32GB
+- Single/Four/Eight NVIDIA V100 32GB
 - CUDA 12.x
 - Uses fp16 (no bf16)
 - No FlashAttention
@@ -26,7 +26,7 @@ make env
 pip install -r requirements.txt
 ```
 
-### Quick Reproduction (3 Commands)
+### Quick Reproduction
 
 1. **SuperGLUE Fine-tuning (LoRA)**
    ```bash
