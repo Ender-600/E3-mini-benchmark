@@ -225,13 +225,33 @@ def aggregate_inference_results(results: List[Dict[str, Any]]) -> pd.DataFrame:
                 if not isinstance(ctx_metrics, dict):
                     continue
                 
+                # For BERT (encoder), set e2e_latency_ms = forward_pass_latency_ms
+                forward_pass_latency = ctx_metrics.get("forward_pass_latency_ms", 0)
+                if forward_pass_latency > 0 and ctx_metrics.get("e2e_latency_ms", 0) == 0:
+                    ctx_metrics["e2e_latency_ms"] = forward_pass_latency
+                    ctx_metrics["e2e_std_ms"] = ctx_metrics.get("latency_std_ms", 0)
+                
                 inference_data.append({
                     "exp_id": exp_id,
                     "model": model_config["name"],
                     "arch": model_config["arch"],
                     "context_length": int(ctx_len),
-                    "latency_ms": ctx_metrics.get("first_token_latency_ms", ctx_metrics.get("latency_ms", 0)),
-                    "latency_std_ms": ctx_metrics.get("latency_std_ms", 0),
+                    # New TTFT/TBT metrics
+                    "ttft_ms": ctx_metrics.get("ttft_ms", 0),
+                    "ttft_std_ms": ctx_metrics.get("ttft_std_ms", 0),
+                    "tbt_ms": ctx_metrics.get("tbt_ms", 0),
+                    "tbt_std_ms": ctx_metrics.get("tbt_std_ms", 0),
+                    "e2e_latency_ms": ctx_metrics.get("e2e_latency_ms", 0),
+                    "e2e_std_ms": ctx_metrics.get("e2e_std_ms", 0),
+                    # Seq2seq specific: encoder latency
+                    "encoder_latency_ms": ctx_metrics.get("encoder_latency_ms", 0),
+                    "encoder_std_ms": ctx_metrics.get("encoder_std_ms", 0),
+                    # Backward compatibility - include forward_pass_latency_ms for BERT
+                    "latency_ms": ctx_metrics.get("first_token_latency_ms", 
+                                                 ctx_metrics.get("ttft_ms", 
+                                                               ctx_metrics.get("forward_pass_latency_ms",
+                                                                             ctx_metrics.get("latency_ms", 0)))),
+                    "latency_std_ms": ctx_metrics.get("latency_std_ms", ctx_metrics.get("ttft_std_ms", 0)),
                     "throughput_tokens_per_sec": ctx_metrics.get("throughput_tokens_per_sec", 0),
                     "throughput_std": ctx_metrics.get("throughput_std", 0),
                     "max_memory_gb": ctx_metrics.get("max_memory_gb", 0),
@@ -243,13 +263,30 @@ def aggregate_inference_results(results: List[Dict[str, Any]]) -> pd.DataFrame:
                 })
         else:
             # Handle single-point results
+            # For BERT (encoder), set e2e_latency_ms = forward_pass_latency_ms
+            forward_pass_latency = metrics.get("forward_pass_latency_ms", 0)
+            if forward_pass_latency > 0 and metrics.get("e2e_latency_ms", 0) == 0:
+                metrics["e2e_latency_ms"] = forward_pass_latency
+                metrics["e2e_std_ms"] = metrics.get("latency_std_ms", 0)
+            
             inference_data.append({
                 "exp_id": exp_id,
                 "model": model_config["name"],
                 "arch": model_config["arch"],
                 "context_length": bench_config.get("max_length", 512),  # Add default context length
-                "latency_ms": metrics.get("first_token_latency_ms", metrics.get("forward_pass_latency_ms", 0)),
-                "latency_std_ms": metrics.get("latency_std_ms", 0),
+                # New TTFT/TBT metrics
+                "ttft_ms": metrics.get("ttft_ms", 0),
+                "ttft_std_ms": metrics.get("ttft_std_ms", 0),
+                "tbt_ms": metrics.get("tbt_ms", 0),
+                "tbt_std_ms": metrics.get("tbt_std_ms", 0),
+                "e2e_latency_ms": metrics.get("e2e_latency_ms", 0),
+                "e2e_std_ms": metrics.get("e2e_std_ms", 0),
+                # Seq2seq specific: encoder latency
+                "encoder_latency_ms": metrics.get("encoder_latency_ms", 0),
+                "encoder_std_ms": metrics.get("encoder_std_ms", 0),
+                # Backward compatibility
+                "latency_ms": metrics.get("first_token_latency_ms", metrics.get("ttft_ms", metrics.get("forward_pass_latency_ms", 0))),
+                "latency_std_ms": metrics.get("latency_std_ms", metrics.get("ttft_std_ms", 0)),
                 "throughput_tokens_per_sec": metrics.get("throughput_tokens_per_sec", 0),
                 "throughput_std": metrics.get("throughput_std", 0),
                 "max_memory_gb": metrics.get("max_memory_gb", resources.get("max_memory_gb", 0)),

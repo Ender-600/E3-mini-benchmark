@@ -23,7 +23,7 @@ def benchmark_decoder_inference(
     tokenizer: Any,
     config: Dict[str, Any]
 ) -> Dict[str, float]:
-    """Benchmark decoder-only model inference."""
+    """Benchmark decoder-only model inference with TTFT and TBT metrics."""
     
     max_length = config.get("max_length", 512)
     num_tokens = config.get("num_tokens", 100)
@@ -55,71 +55,107 @@ def benchmark_decoder_inference(
                     pad_token_id=tokenizer.eos_token_id
                 )
     
-    # Benchmark runs
-    logger.info("Running inference benchmark...")
-    latencies = []
+    # Benchmark runs with token-by-token timing
+    logger.info("Running inference benchmark with TTFT/TBT measurement...")
+    ttft_list = []  # Time-To-First-Token
+    tbt_list = []   # Time-Between-Tokens
+    e2e_list = []   # End-to-End latency
     throughputs = []
     
     for run in range(num_runs):
-        run_latencies = []
-        run_throughputs = []
-        
         for prompt in prompts:
             inputs = tokenizer(prompt, return_tensors="pt", padding=True, truncation=True, max_length=max_length)
             inputs = {k: v.to(model.device) for k, v in inputs.items()}
             
-            # Measure first token latency
+            # Measure token-by-token generation
+            input_ids = inputs["input_ids"]
+            attention_mask = inputs.get("attention_mask", None)
+            
+            token_times = []
+            generated_ids = input_ids.clone()
+            
             start_time = time.time()
             
             with torch.no_grad():
-                outputs = model.generate(
-                    **inputs,
-                    max_new_tokens=num_tokens,
-                    do_sample=False,
-                    pad_token_id=tokenizer.eos_token_id,
-                    use_cache=True
-                )
+                # Generate tokens one by one to measure TTFT and TBT
+                for i in range(num_tokens):
+                    token_start = time.time()
+                    
+                    outputs = model(
+                        input_ids=generated_ids,
+                        attention_mask=attention_mask,
+                        use_cache=False  # Simpler for timing, could optimize later
+                    )
+                    
+                    # Get next token (greedy decoding)
+                    next_token_logits = outputs.logits[:, -1, :]
+                    next_token = torch.argmax(next_token_logits, dim=-1, keepdim=True)
+                    
+                    token_end = time.time()
+                    token_times.append(token_end - token_start)
+                    
+                    # Append new token
+                    generated_ids = torch.cat([generated_ids, next_token], dim=-1)
+                    
+                    # Update attention mask
+                    if attention_mask is not None:
+                        attention_mask = torch.cat([
+                            attention_mask,
+                            torch.ones((attention_mask.shape[0], 1), device=attention_mask.device, dtype=attention_mask.dtype)
+                        ], dim=-1)
+                    
+                    # Check for EOS token
+                    if next_token.item() == tokenizer.eos_token_id:
+                        break
             
             end_time = time.time()
             total_time = end_time - start_time
+            actual_tokens = len(token_times)
             
-            # FIXED: Calculate metrics for seq2seq models
-            # For T5 and other encoder-decoder models, outputs.shape[1] is the total generated length
-            input_length = inputs["input_ids"].shape[1]
-            output_length = outputs.shape[1]
-            
-            # For seq2seq models, the output is the generated sequence
-            # We need to count actual generated tokens by decoding
-            generated_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
-            generated_tokens = len(tokenizer.encode(generated_text, add_special_tokens=False))
-            
-            # Debug logging
-            if run == 0:  # Only log for first run to avoid spam
-                logger.info(f"Input: {prompt[:50]}...")
-                logger.info(f"Generated: {generated_text[:50]}...")
-                logger.info(f"Input length: {input_length}, Output length: {output_length}, Generated tokens: {generated_tokens}")
-            
-            if generated_tokens <= 0:
-                logger.warning(f"No tokens generated for input: {prompt[:50]}...")
-                continue
+            if actual_tokens > 0:
+                # TTFT: Time to first token (prefill + first decode)
+                ttft = token_times[0]
+                ttft_list.append(ttft)
                 
-            latency = total_time / generated_tokens
-            throughput = generated_tokens / total_time
-            
-            run_latencies.append(latency)
-            run_throughputs.append(throughput)
-        
-        latencies.extend(run_latencies)
-        throughputs.extend(run_throughputs)
+                # TBT: Average time between subsequent tokens (decode phase)
+                if actual_tokens > 1:
+                    tbt = statistics.mean(token_times[1:])
+                    tbt_list.append(tbt)
+                
+                # E2E: End-to-end latency
+                e2e_list.append(total_time)
+                
+                # Throughput: tokens per second
+                throughput = actual_tokens / total_time
+                throughputs.append(throughput)
+                
+                # Debug logging
+                if run == 0:
+                    logger.info(f"Input: {prompt[:50]}...")
+                    logger.info(f"Generated {actual_tokens} tokens")
+                    logger.info(f"TTFT: {ttft*1000:.2f}ms, TBT: {tbt*1000 if actual_tokens > 1 else 0:.2f}ms, E2E: {total_time*1000:.2f}ms")
     
     # Calculate statistics
-    return {
-        "first_token_latency_ms": statistics.mean(latencies) * 1000,
-        "latency_std_ms": statistics.stdev(latencies) * 1000,
+    results = {
+        "ttft_ms": statistics.mean(ttft_list) * 1000,
+        "ttft_std_ms": statistics.stdev(ttft_list) * 1000 if len(ttft_list) > 1 else 0,
         "throughput_tokens_per_sec": statistics.mean(throughputs),
-        "throughput_std": statistics.stdev(throughputs),
-        "total_runs": len(latencies)
+        "throughput_std": statistics.stdev(throughputs) if len(throughputs) > 1 else 0,
+        "e2e_latency_ms": statistics.mean(e2e_list) * 1000,
+        "e2e_std_ms": statistics.stdev(e2e_list) * 1000 if len(e2e_list) > 1 else 0,
+        "total_runs": len(ttft_list)
     }
+    
+    # Add TBT if we have multiple tokens
+    if len(tbt_list) > 0:
+        results["tbt_ms"] = statistics.mean(tbt_list) * 1000
+        results["tbt_std_ms"] = statistics.stdev(tbt_list) * 1000 if len(tbt_list) > 1 else 0
+    
+    # Backward compatibility: keep old metric names
+    results["first_token_latency_ms"] = results["ttft_ms"]
+    results["latency_std_ms"] = results["ttft_std_ms"]
+    
+    return results
 
 
 def benchmark_seq2seq_inference(
@@ -127,7 +163,7 @@ def benchmark_seq2seq_inference(
     tokenizer: Any,
     config: Dict[str, Any]
 ) -> Dict[str, float]:
-    """Benchmark encoder-decoder model inference."""
+    """Benchmark encoder-decoder model inference with TTFT and TBT metrics."""
     
     max_length = config.get("max_length", 512)
     num_tokens = config.get("num_tokens", 100)
@@ -159,70 +195,108 @@ def benchmark_seq2seq_inference(
                     pad_token_id=tokenizer.eos_token_id
                 )
     
-    # Benchmark runs
-    logger.info("Running inference benchmark...")
-    latencies = []
+    # Benchmark runs with token-by-token timing
+    logger.info("Running inference benchmark with TTFT/TBT measurement...")
+    ttft_list = []  # Time-To-First-Token (includes encoder + first decoder step)
+    tbt_list = []   # Time-Between-Tokens (decoder-only)
+    e2e_list = []   # End-to-End latency
+    encoder_list = []  # Encoder processing time
     throughputs = []
     
     for run in range(num_runs):
-        run_latencies = []
-        run_throughputs = []
-        
         for input_text, _ in test_cases:
             inputs = tokenizer(input_text, return_tensors="pt", padding=True, truncation=True, max_length=max_length)
             inputs = {k: v.to(model.device) for k, v in inputs.items()}
             
+            # Measure encoder time separately for seq2seq models
+            encoder_start = time.time()
+            with torch.no_grad():
+                encoder_outputs = model.get_encoder()(**inputs)
+            encoder_time = time.time() - encoder_start
+            encoder_list.append(encoder_time)
+            
+            # Now measure decoder token-by-token
+            token_times = []
+            decoder_input_ids = torch.tensor([[tokenizer.pad_token_id]], device=model.device)
+            
             start_time = time.time()
             
             with torch.no_grad():
-                outputs = model.generate(
-                    **inputs,
-                    max_new_tokens=num_tokens,
-                    do_sample=False,
-                    pad_token_id=tokenizer.eos_token_id,
-                    use_cache=True
-                )
+                # Generate tokens one by one to measure TTFT and TBT
+                for i in range(num_tokens):
+                    token_start = time.time()
+                    
+                    outputs = model(
+                        encoder_outputs=encoder_outputs,
+                        decoder_input_ids=decoder_input_ids,
+                        use_cache=False
+                    )
+                    
+                    # Get next token (greedy decoding)
+                    next_token_logits = outputs.logits[:, -1, :]
+                    next_token = torch.argmax(next_token_logits, dim=-1, keepdim=True)
+                    
+                    token_end = time.time()
+                    token_times.append(token_end - token_start)
+                    
+                    # Append new token
+                    decoder_input_ids = torch.cat([decoder_input_ids, next_token], dim=-1)
+                    
+                    # Check for EOS token
+                    if next_token.item() == tokenizer.eos_token_id:
+                        break
             
             end_time = time.time()
-            total_time = end_time - start_time
+            decoder_time = end_time - start_time
+            total_time = encoder_time + decoder_time
+            actual_tokens = len(token_times)
             
-            # FIXED: Calculate metrics for seq2seq models
-            # For T5 and other encoder-decoder models, outputs.shape[1] is the total generated length
-            input_length = inputs["input_ids"].shape[1]
-            output_length = outputs.shape[1]
-            
-            # For seq2seq models, the output is the generated sequence
-            # We need to count actual generated tokens by decoding
-            generated_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
-            generated_tokens = len(tokenizer.encode(generated_text, add_special_tokens=False))
-            
-            # Debug logging
-            if run == 0:  # Only log for first run to avoid spam
-                logger.info(f"Input: {input_text[:50]}...")
-                logger.info(f"Generated: {generated_text[:50]}...")
-                logger.info(f"Input length: {input_length}, Output length: {output_length}, Generated tokens: {generated_tokens}")
-            
-            if generated_tokens <= 0:
-                logger.warning(f"No tokens generated for input: {input_text[:50]}...")
-                continue
+            if actual_tokens > 0:
+                # TTFT: Encoder time + first decoder token
+                ttft = encoder_time + token_times[0]
+                ttft_list.append(ttft)
                 
-            latency = total_time / generated_tokens
-            throughput = generated_tokens / total_time
-            
-            run_latencies.append(latency)
-            run_throughputs.append(throughput)
-        
-        latencies.extend(run_latencies)
-        throughputs.extend(run_throughputs)
+                # TBT: Average time between subsequent tokens (decoder-only)
+                if actual_tokens > 1:
+                    tbt = statistics.mean(token_times[1:])
+                    tbt_list.append(tbt)
+                
+                # E2E: End-to-end latency
+                e2e_list.append(total_time)
+                
+                # Throughput: tokens per second
+                throughput = actual_tokens / total_time
+                throughputs.append(throughput)
+                
+                # Debug logging
+                if run == 0:
+                    logger.info(f"Input: {input_text[:50]}...")
+                    logger.info(f"Generated {actual_tokens} tokens")
+                    logger.info(f"Encoder: {encoder_time*1000:.2f}ms, TTFT: {ttft*1000:.2f}ms, TBT: {tbt*1000 if actual_tokens > 1 else 0:.2f}ms, E2E: {total_time*1000:.2f}ms")
     
     # Calculate statistics
-    return {
-        "first_token_latency_ms": statistics.mean(latencies) * 1000,
-        "latency_std_ms": statistics.stdev(latencies) * 1000,
+    results = {
+        "ttft_ms": statistics.mean(ttft_list) * 1000,
+        "ttft_std_ms": statistics.stdev(ttft_list) * 1000 if len(ttft_list) > 1 else 0,
+        "encoder_latency_ms": statistics.mean(encoder_list) * 1000,
+        "encoder_std_ms": statistics.stdev(encoder_list) * 1000 if len(encoder_list) > 1 else 0,
         "throughput_tokens_per_sec": statistics.mean(throughputs),
-        "throughput_std": statistics.stdev(throughputs),
-        "total_runs": len(latencies)
+        "throughput_std": statistics.stdev(throughputs) if len(throughputs) > 1 else 0,
+        "e2e_latency_ms": statistics.mean(e2e_list) * 1000,
+        "e2e_std_ms": statistics.stdev(e2e_list) * 1000 if len(e2e_list) > 1 else 0,
+        "total_runs": len(ttft_list)
     }
+    
+    # Add TBT if we have multiple tokens
+    if len(tbt_list) > 0:
+        results["tbt_ms"] = statistics.mean(tbt_list) * 1000
+        results["tbt_std_ms"] = statistics.stdev(tbt_list) * 1000 if len(tbt_list) > 1 else 0
+    
+    # Backward compatibility: keep old metric names
+    results["first_token_latency_ms"] = results["ttft_ms"]
+    results["latency_std_ms"] = results["ttft_std_ms"]
+    
+    return results
 
 
 def benchmark_encoder_inference(

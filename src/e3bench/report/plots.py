@@ -213,6 +213,9 @@ def generate_inference_plots(df: pd.DataFrame, output_dir: str) -> None:
     if has_scaling_data:
         # Generate latency curve for scaling data
         generate_latency_curve(df, output_dir)
+        # Generate TTFT/TBT breakdown if available
+        if 'ttft_ms' in df.columns and df['ttft_ms'].sum() > 0:
+            generate_ttft_tbt_curves(df, output_dir)
     
     # 1. Latency comparison (aggregate by architecture)
     plt.figure(figsize=(12, 5))
@@ -291,14 +294,35 @@ def generate_latency_curve(df: pd.DataFrame, output_dir: str) -> None:
         'encdec': {'color': '#3498db', 'marker': '^', 'label': 'Encoder-Decoder (T5)'}
     }
     
-    # Plot 1: Latency vs Context Length
+    # Plot 1: End-to-End Latency vs Context Length
     for arch in scaling_df['arch'].unique():
         arch_df = scaling_df[scaling_df['arch'] == arch]
+        
+        # Use E2E latency if available, otherwise fall back to other metrics
+        # For BERT (encoder): E2E = forward_pass_latency
+        # For GPT-2/T5: E2E = full generation time
+        if 'e2e_latency_ms' in arch_df.columns and arch_df['e2e_latency_ms'].sum() > 0:
+            latency_col = 'e2e_latency_ms'
+            std_col = 'e2e_std_ms'
+        else:
+            # Fallback to latency_ms (TTFT or forward_pass)
+            latency_col = 'latency_ms'
+            std_col = 'latency_std_ms'
+        
         # Group by context_length and aggregate
-        grouped = arch_df.groupby('context_length').agg({
-            'latency_ms': 'mean',
-            'latency_std_ms': 'mean'
-        }).reset_index()
+        agg_dict = {latency_col: ['mean', 'std']}
+        if std_col in arch_df.columns:
+            agg_dict[std_col] = 'first'
+        
+        grouped = arch_df.groupby('context_length').agg(agg_dict).reset_index()
+        
+        # Flatten column names
+        if std_col in arch_df.columns:
+            grouped.columns = ['context_length', 'latency_ms', 'latency_calculated_std', 'latency_std_ms']
+            grouped['final_std'] = grouped['latency_calculated_std'].fillna(grouped['latency_std_ms']).fillna(0)
+        else:
+            grouped.columns = ['context_length', 'latency_ms', 'latency_calculated_std']
+            grouped['final_std'] = grouped['latency_calculated_std'].fillna(0)
         
         style = arch_styles.get(arch, {'color': 'gray', 'marker': 'o', 'label': arch})
         
@@ -307,16 +331,16 @@ def generate_latency_curve(df: pd.DataFrame, output_dir: str) -> None:
                 label=style['label'], linewidth=2, markersize=8)
         
         # Add error bars if available
-        if grouped['latency_std_ms'].sum() > 0:
+        if grouped['final_std'].sum() > 0:
             ax1.fill_between(grouped['context_length'], 
-                            grouped['latency_ms'] - grouped['latency_std_ms'],
-                            grouped['latency_ms'] + grouped['latency_std_ms'],
+                            grouped['latency_ms'] - grouped['final_std'],
+                            grouped['latency_ms'] + grouped['final_std'],
                             color=style['color'], alpha=0.2)
     
     ax1.set_xlabel('Context Length (tokens)', fontsize=12)
-    ax1.set_ylabel('Latency (ms)', fontsize=12)
-    ax1.set_title('Inference Latency vs Context Length', fontsize=14, fontweight='bold')
-    ax1.legend(fontsize=10, loc='upper left')
+    ax1.set_ylabel('E2E Latency (ms)', fontsize=12)
+    ax1.set_title('End-to-End Inference Latency vs Context Length', fontsize=14, fontweight='bold')
+    ax1.legend(fontsize=10, loc='best', framealpha=0.9)
     ax1.grid(True, alpha=0.3, linestyle='--')
     ax1.set_xscale('linear')
     
@@ -336,7 +360,7 @@ def generate_latency_curve(df: pd.DataFrame, output_dir: str) -> None:
     ax2.set_xlabel('Context Length (tokens)', fontsize=12)
     ax2.set_ylabel('Peak Memory (GB)', fontsize=12)
     ax2.set_title('Memory Usage vs Context Length', fontsize=14, fontweight='bold')
-    ax2.legend(fontsize=10, loc='upper left')
+    ax2.legend(fontsize=10, loc='best', framealpha=0.9)
     ax2.grid(True, alpha=0.3, linestyle='--')
     
     plt.tight_layout()
@@ -344,6 +368,205 @@ def generate_latency_curve(df: pd.DataFrame, output_dir: str) -> None:
     plt.close()
     
     logger.info("Generated latency curve plot")
+
+
+def generate_ttft_tbt_curves(df: pd.DataFrame, output_dir: str) -> None:
+    """
+    Generate TTFT (Time-To-First-Token) and TBT (Time-Between-Tokens) curves.
+    
+    This shows the breakdown of latency into:
+    - TTFT: Prefill + first decode (includes context encoding)
+    - TBT: Average decode time for subsequent tokens
+    - E2E: End-to-end latency
+    """
+    
+    # Filter to only scaling experiments with TTFT/TBT data
+    scaling_df = df[(df['context_length'].notna()) & (df['ttft_ms'] > 0)].copy()
+    
+    if scaling_df.empty:
+        logger.warning("No TTFT/TBT data found for latency breakdown")
+        return
+    
+    # Create figure with three subplots
+    fig = plt.figure(figsize=(20, 6))
+    
+    # Define colors and markers for architectures
+    arch_styles = {
+        'encoder': {'color': '#2ecc71', 'marker': 'o', 'label': 'Encoder (BERT)'},
+        'decoder': {'color': '#e74c3c', 'marker': 's', 'label': 'Decoder (GPT-2)'},
+        'encdec': {'color': '#3498db', 'marker': '^', 'label': 'Encoder-Decoder (T5)'}
+    }
+    
+    # Plot 1: TTFT vs Context Length
+    ax1 = plt.subplot(1, 3, 1)
+    for arch in scaling_df['arch'].unique():
+        arch_df = scaling_df[scaling_df['arch'] == arch]
+        # Calculate std from the ttft values themselves, with fallback to pre-computed std
+        grouped = arch_df.groupby('context_length').agg({
+            'ttft_ms': ['mean', 'std'],
+            'ttft_std_ms': 'first'  # Keep the pre-computed std as fallback
+        }).reset_index()
+        grouped.columns = ['context_length', 'ttft_ms', 'ttft_calculated_std', 'ttft_std_ms']
+        
+        # Use calculated std if available, otherwise use pre-computed std
+        grouped['final_std'] = grouped['ttft_calculated_std'].fillna(grouped['ttft_std_ms']).fillna(0)
+        
+        style = arch_styles.get(arch, {'color': 'gray', 'marker': 'o', 'label': arch})
+        
+        ax1.plot(grouped['context_length'], grouped['ttft_ms'], 
+                marker=style['marker'], color=style['color'], 
+                label=style['label'], linewidth=2, markersize=8)
+        
+        # Add error bars if available
+        if grouped['final_std'].sum() > 0:
+            ax1.fill_between(grouped['context_length'], 
+                            grouped['ttft_ms'] - grouped['final_std'],
+                            grouped['ttft_ms'] + grouped['final_std'],
+                            color=style['color'], alpha=0.2)
+    
+    ax1.set_xlabel('Context Length (tokens)', fontsize=12)
+    ax1.set_ylabel('TTFT (ms)', fontsize=12)
+    ax1.set_title('Time-To-First-Token (TTFT)\nPrefill + First Decode', fontsize=13, fontweight='bold')
+    ax1.legend(fontsize=10, loc='best', framealpha=0.9)
+    ax1.grid(True, alpha=0.3, linestyle='--')
+    
+    # Plot 2: TBT vs Context Length
+    ax2 = plt.subplot(1, 3, 2)
+    for arch in scaling_df['arch'].unique():
+        arch_df = scaling_df[scaling_df['arch'] == arch]
+        # Only plot if TBT data is available
+        if 'tbt_ms' in arch_df.columns and arch_df['tbt_ms'].sum() > 0:
+            # Calculate std from the tbt values themselves, with fallback
+            grouped = arch_df.groupby('context_length').agg({
+                'tbt_ms': ['mean', 'std'],
+                'tbt_std_ms': 'first'  # Keep the pre-computed std as fallback
+            }).reset_index()
+            grouped.columns = ['context_length', 'tbt_ms', 'tbt_calculated_std', 'tbt_std_ms']
+            
+            # Use calculated std if available, otherwise use pre-computed std
+            grouped['final_std'] = grouped['tbt_calculated_std'].fillna(grouped['tbt_std_ms']).fillna(0)
+            
+            style = arch_styles.get(arch, {'color': 'gray', 'marker': 'o', 'label': arch})
+            
+            ax2.plot(grouped['context_length'], grouped['tbt_ms'], 
+                    marker=style['marker'], color=style['color'], 
+                    label=style['label'], linewidth=2, markersize=8)
+            
+            # Add error bars if available
+            if grouped['final_std'].sum() > 0:
+                ax2.fill_between(grouped['context_length'], 
+                                grouped['tbt_ms'] - grouped['final_std'],
+                                grouped['tbt_ms'] + grouped['final_std'],
+                                color=style['color'], alpha=0.2)
+    
+    ax2.set_xlabel('Context Length (tokens)', fontsize=12)
+    ax2.set_ylabel('TBT (ms)', fontsize=12)
+    ax2.set_title('Time-Between-Tokens (TBT)\nAverage Decode Latency', fontsize=13, fontweight='bold')
+    ax2.legend(fontsize=10, loc='best', framealpha=0.9)
+    ax2.grid(True, alpha=0.3, linestyle='--')
+    
+    # Plot 3: E2E Latency vs Context Length
+    ax3 = plt.subplot(1, 3, 3)
+    for arch in scaling_df['arch'].unique():
+        arch_df = scaling_df[scaling_df['arch'] == arch]
+        if 'e2e_latency_ms' in arch_df.columns and arch_df['e2e_latency_ms'].sum() > 0:
+            # Calculate std from the e2e values themselves, with fallback
+            grouped = arch_df.groupby('context_length').agg({
+                'e2e_latency_ms': ['mean', 'std'],
+                'e2e_std_ms': 'first'  # Keep the pre-computed std as fallback
+            }).reset_index()
+            grouped.columns = ['context_length', 'e2e_latency_ms', 'e2e_calculated_std', 'e2e_std_ms']
+            
+            # Use calculated std if available, otherwise use pre-computed std
+            grouped['final_std'] = grouped['e2e_calculated_std'].fillna(grouped['e2e_std_ms']).fillna(0)
+            
+            style = arch_styles.get(arch, {'color': 'gray', 'marker': 'o', 'label': arch})
+            
+            ax3.plot(grouped['context_length'], grouped['e2e_latency_ms'], 
+                    marker=style['marker'], color=style['color'], 
+                    label=style['label'], linewidth=2, markersize=8)
+            
+            # Add error bars if available
+            if grouped['final_std'].sum() > 0:
+                ax3.fill_between(grouped['context_length'], 
+                                grouped['e2e_latency_ms'] - grouped['final_std'],
+                                grouped['e2e_latency_ms'] + grouped['final_std'],
+                                color=style['color'], alpha=0.2)
+    
+    ax3.set_xlabel('Context Length (tokens)', fontsize=12)
+    ax3.set_ylabel('E2E Latency (ms)', fontsize=12)
+    ax3.set_title('End-to-End (E2E) Latency\nTotal Generation Time', fontsize=13, fontweight='bold')
+    ax3.legend(fontsize=10, loc='best', framealpha=0.9)
+    ax3.grid(True, alpha=0.3, linestyle='--')
+    
+    plt.suptitle('Latency Breakdown: TTFT vs TBT vs E2E', fontsize=16, fontweight='bold', y=1.02)
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, 'ttft_tbt_curves.png'), dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    logger.info("Generated TTFT/TBT breakdown plot")
+    
+    # Generate additional plot: Stacked bar chart for latency composition
+    generate_latency_composition_chart(scaling_df, output_dir, arch_styles)
+
+
+def generate_latency_composition_chart(df: pd.DataFrame, output_dir: str, arch_styles: dict) -> None:
+    """
+    Generate stacked bar chart showing latency composition (TTFT vs TBT contribution).
+    """
+    
+    fig, axes = plt.subplots(1, len(df['arch'].unique()), figsize=(18, 6), sharey=True)
+    
+    if len(df['arch'].unique()) == 1:
+        axes = [axes]
+    
+    for idx, arch in enumerate(df['arch'].unique()):
+        arch_df = df[df['arch'] == arch]
+        
+        # Group by context length
+        grouped = arch_df.groupby('context_length').agg({
+            'ttft_ms': 'mean',
+            'tbt_ms': 'mean',
+            'e2e_latency_ms': 'mean'
+        }).reset_index()
+        
+        # Calculate contribution of TBT to total time
+        # E2E ≈ TTFT + (m-1) * TBT, we'll estimate based on available data
+        context_lengths = grouped['context_length'].values
+        ttft = grouped['ttft_ms'].values
+        tbt = grouped['tbt_ms'].values if 'tbt_ms' in grouped.columns else np.zeros_like(ttft)
+        
+        # Calculate decode contribution (rough estimate)
+        # Assuming we generated ~50 tokens on average
+        decode_contribution = tbt * 49  # (m-1) where m=50
+        
+        # Create stacked bar chart
+        x = np.arange(len(context_lengths))
+        width = 0.6
+        
+        style = arch_styles.get(arch, {'color': 'gray', 'label': arch})
+        base_color = style['color']
+        
+        # TTFT (prefill + first decode)
+        axes[idx].bar(x, ttft, width, label='TTFT (Prefill)', color=base_color, alpha=0.8)
+        # Decode contribution (subsequent tokens)
+        axes[idx].bar(x, decode_contribution, width, bottom=ttft, 
+                     label='Decode (TBT × tokens)', color=base_color, alpha=0.4)
+        
+        axes[idx].set_xlabel('Context Length (tokens)', fontsize=11)
+        axes[idx].set_ylabel('Latency (ms)', fontsize=11) if idx == 0 else None
+        axes[idx].set_title(f'{style["label"]}\nLatency Composition', fontsize=12, fontweight='bold')
+        axes[idx].set_xticks(x)
+        axes[idx].set_xticklabels(context_lengths, rotation=45)
+        axes[idx].legend(fontsize=9, loc='upper left')
+        axes[idx].grid(True, alpha=0.3, axis='y')
+    
+    plt.suptitle('Latency Composition: Prefill (TTFT) vs Decode (TBT)', fontsize=14, fontweight='bold', y=1.02)
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, 'latency_composition.png'), dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    logger.info("Generated latency composition chart")
 
 
 def generate_pretraining_plots(df: pd.DataFrame, output_dir: str) -> None:
