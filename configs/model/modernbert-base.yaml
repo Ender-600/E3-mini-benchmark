@@ -1,0 +1,8 @@
+name: "modernbert-base"
+arch: "encoder"
+pretrained: "answerdotai/ModernBERT-base"
+dtype: "fp16"
+attn_impl: "sdpa"
+use_lora: false
+max_length: 8192
+

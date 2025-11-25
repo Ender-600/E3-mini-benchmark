@@ -1,0 +1,59 @@
+{
+  "exp_id": "inference_20251125_041205",
+  "commit": "cc2e32a6",
+  "config": {
+    "model": {
+      "name": "flan-t5-base",
+      "arch": "encdec",
+      "pretrained": "google/flan-t5-base",
+      "dtype": "fp16",
+      "attn_impl": "eager",
+      "use_lora": false,
+      "max_length": 512
+    },
+    "bench": {
+      "name": "infer_seq2seq",
+      "arch": "encdec",
+      "max_length": 512,
+      "num_tokens": 100,
+      "batch_size": 1,
+      "num_runs": 5,
+      "warmup_runs": 2
+    }
+  },
+  "metrics": {
+    "ttft_ms": 39.024152755737305,
+    "ttft_std_ms": 1.031879015853466,
+    "encoder_latency_ms": 15.64866065979004,
+    "encoder_std_ms": 0.11869714475597255,
+    "throughput_tokens_per_sec": 37.510293799846764,
+    "throughput_std": 1.4650891454979957,
+    "e2e_latency_ms": 225.76922416687012,
+    "e2e_std_ms": 106.23340544902821,
+    "total_runs": 25,
+    "inference_energy_per_sample_joules": 57.90069584312439,
+    "avg_power_watts": 223.67,
+    "tbt_ms": 24.43492130799727,
+    "tbt_std_ms": 0.43755208275907237,
+    "first_token_latency_ms": 39.024152755737305,
+    "latency_std_ms": 1.031879015853466,
+    "max_memory_gb": 0.5493435859680176,
+    "current_memory_gb": 0.5475759506225586
+  },
+  "timing": {
+    "start_time": 1764065525.2456422,
+    "end_time": 1764065547.4325361,
+    "duration_seconds": 22.186893939971924
+  },
+  "resources": {
+    "gpu_name": "Tesla V100-SXM2-32GB",
+    "max_memory_gb": 0.5493435859680176,
+    "cuda_version": "12.8"
+  },
+  "power": {
+    "avg_watt": 223.67,
+    "kwh": 0.0004020881655772527,
+    "duration_seconds": 6.471665382385254
+  },
+  "timestamp": 1764065547.436494
+}

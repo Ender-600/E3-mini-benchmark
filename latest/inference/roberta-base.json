@@ -1,0 +1,48 @@
+{
+  "exp_id": "inference_20251125_015441",
+  "commit": "cc2e32a6",
+  "config": {
+    "model": {
+      "name": "roberta-base",
+      "arch": "encoder",
+      "pretrained": "roberta-base",
+      "dtype": "fp16",
+      "attn_impl": "eager",
+      "use_lora": true,
+      "max_length": 512
+    },
+    "bench": {
+      "name": "infer_encoder",
+      "arch": "encoder",
+      "max_length": 512,
+      "batch_size": 1,
+      "num_runs": 5,
+      "warmup_runs": 2
+    }
+  },
+  "metrics": {
+    "forward_pass_latency_ms": 10.016803741455078,
+    "latency_std_ms": 0.18454057655311012,
+    "total_runs": 25,
+    "inference_energy_per_sample_joules": 9.330332754707337,
+    "avg_power_watts": 224.23,
+    "max_memory_gb": 0.24847173690795898,
+    "current_memory_gb": 0.2482905387878418
+  },
+  "timing": {
+    "start_time": 1764057281.8973641,
+    "end_time": 1764057291.9176576,
+    "duration_seconds": 10.020293474197388
+  },
+  "resources": {
+    "gpu_name": "Tesla V100-SXM2-32GB",
+    "max_memory_gb": 0.24847173690795898,
+    "cuda_version": "12.8"
+  },
+  "power": {
+    "avg_watt": 224.23,
+    "kwh": 6.479397746324538e-05,
+    "duration_seconds": 1.0402636528015137
+  },
+  "timestamp": 1764057291.9201639
+}

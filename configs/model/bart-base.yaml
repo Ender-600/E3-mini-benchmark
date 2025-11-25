@@ -1,0 +1,8 @@
+name: "bart-base"
+arch: "encdec"
+pretrained: "facebook/bart-base"
+dtype: "fp16"
+attn_impl: "eager"
+use_lora: false
+max_length: 1024
+

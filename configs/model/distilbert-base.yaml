@@ -1,0 +1,8 @@
+name: "distilbert-base-uncased"
+arch: "encoder"
+pretrained: "distilbert-base-uncased"
+dtype: "fp16"
+attn_impl: "eager"
+use_lora: false
+max_length: 512
+

@@ -355,8 +355,10 @@ def finetune_superglue(
             lora_params = get_lora_parameters(model_temp) if use_lora else None
             del model_temp  # Free memory
             
-            # Store per-seed runs
+            # Store per-seed runs and power stats
             runs = []
+            train_power_readings = []
+            eval_power_readings = []
             
             # Loop over seeds
             for seed in seeds:
@@ -508,12 +510,20 @@ def finetune_superglue(
                 if torch.cuda.is_available():
                     torch.cuda.reset_peak_memory_stats()
                 
-                # Track training time
+                # Start power monitoring for training
+                train_power_monitor = PowerMonitor()
+                train_power_monitor.start()
                 train_start = time.time()
                 
                 # Train
                 logger.info(f"Training {task_name} with seed {seed}...")
                 train_result = trainer.train()
+                
+                # Stop power monitoring for training
+                train_end = time.time()
+                train_power_stats = train_power_monitor.stop()
+                train_power_stats["duration_seconds"] = train_end - train_start
+                train_power_readings.append(train_power_stats)
                 
                 # Check training loss for numerical issues
                 train_loss = train_result.training_loss
@@ -523,8 +533,20 @@ def finetune_superglue(
                 if train_loss == 0.0:
                     logger.warning(f"{task_name} seed {seed} - Training loss is exactly 0.0. This may indicate model collapse.")
                 
+                # Start power monitoring for evaluation
+                eval_power_monitor = PowerMonitor()
+                eval_power_monitor.start()
+                eval_start = time.time()
+                
                 # Evaluate
                 eval_result = trainer.evaluate()
+                
+                # Stop power monitoring for evaluation
+                eval_end = time.time()
+                eval_power_stats = eval_power_monitor.stop()
+                eval_power_stats["duration_seconds"] = eval_end - eval_start
+                eval_power_readings.append(eval_power_stats)
+                
                 eval_loss = eval_result.get("eval_loss", float('inf'))
                 
                 # Check eval loss for numerical issues
@@ -539,7 +561,7 @@ def finetune_superglue(
                 elif num_labels == 3 and eval_loss > 5.0:  # 3-class (CB), random ~1.1
                     logger.warning(f"{task_name} seed {seed} - Eval loss ({eval_loss:.4f}) is unusually high for 3-class classification (random baseline ~1.1)")
                 
-                train_time = time.time() - train_start
+                train_time = train_end - train_start
                 
                 # Get GPU info
                 gpu_name = None
@@ -566,6 +588,53 @@ def finetune_superglue(
                 logger.info(f"{task_name} seed {seed} - Train Loss: {train_loss:.4f}, "
                            f"Eval Loss: {eval_loss:.4f}, Eval Accuracy: {eval_result.get('eval_accuracy', 0):.4f}")
             
+            # Aggregate power readings across all seeds
+            def aggregate_power_readings(readings):
+                """Aggregate power readings from multiple seeds."""
+                if not readings:
+                    return {"avg_watt": None, "kwh": None, "duration_seconds": 0.0}
+                
+                valid_readings = [r for r in readings if r.get("avg_watt") is not None]
+                if not valid_readings:
+                    return {"avg_watt": None, "kwh": None, "duration_seconds": sum(r["duration_seconds"] for r in readings)}
+                
+                total_duration = sum(r["duration_seconds"] for r in readings)
+                avg_watt = sum(r["avg_watt"] for r in valid_readings) / len(valid_readings)
+                total_kwh = sum(r["kwh"] for r in valid_readings if r.get("kwh") is not None)
+                
+                return {
+                    "avg_watt": avg_watt,
+                    "kwh": total_kwh,
+                    "duration_seconds": total_duration
+                }
+            
+            train_power_agg = aggregate_power_readings(train_power_readings)
+            eval_power_agg = aggregate_power_readings(eval_power_readings)
+            
+            # Calculate total power stats
+            total_duration = train_power_agg["duration_seconds"] + eval_power_agg["duration_seconds"]
+            total_kwh = 0.0
+            if train_power_agg["kwh"] is not None:
+                total_kwh += train_power_agg["kwh"]
+            if eval_power_agg["kwh"] is not None:
+                total_kwh += eval_power_agg["kwh"]
+            
+            # Calculate weighted average watt (weighted by duration)
+            avg_watt = None
+            if train_power_agg["avg_watt"] is not None and eval_power_agg["avg_watt"] is not None and total_duration > 0:
+                avg_watt = (train_power_agg["avg_watt"] * train_power_agg["duration_seconds"] + 
+                           eval_power_agg["avg_watt"] * eval_power_agg["duration_seconds"]) / total_duration
+            elif train_power_agg["avg_watt"] is not None:
+                avg_watt = train_power_agg["avg_watt"]
+            elif eval_power_agg["avg_watt"] is not None:
+                avg_watt = eval_power_agg["avg_watt"]
+            
+            total_power = {
+                "avg_watt": avg_watt,
+                "kwh": total_kwh if total_kwh > 0 else None,
+                "duration_seconds": total_duration
+            }
+            
             # Aggregate runs
             aggregated = aggregate_runs(runs)
             
@@ -575,10 +644,17 @@ def finetune_superglue(
                 "mean": aggregated["mean"],
                 "std": aggregated["std"],
                 "trainable_params": trainable_params,
-                "lora_params": lora_params
+                "lora_params": lora_params,
+                "power": {
+                    "train": train_power_agg,
+                    "eval": eval_power_agg,
+                    "total": total_power
+                }
             }
             
-            logger.info(f"{task_name} complete - Mean Accuracy: {aggregated['mean'].get('eval_accuracy', 0):.4f}")
+            logger.info(f"{task_name} complete - Mean Accuracy: {aggregated['mean'].get('eval_accuracy', 0):.4f}, "
+                       f"Train Energy: {train_power_agg.get('kwh', 'N/A')} kWh, "
+                       f"Eval Energy: {eval_power_agg.get('kwh', 'N/A')} kWh")
         
         # Stop power monitoring
         end_time = time.time()

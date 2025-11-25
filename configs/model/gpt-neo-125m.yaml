@@ -1,0 +1,8 @@
+name: "gpt-neo-125m"
+arch: "decoder"
+pretrained: "EleutherAI/gpt-neo-125m"
+dtype: "fp16"
+attn_impl: "eager"
+use_lora: false
+max_length: 512
+

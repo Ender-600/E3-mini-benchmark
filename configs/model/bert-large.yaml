@@ -1,0 +1,8 @@
+name: "bert-large-uncased"
+arch: "encoder"
+pretrained: "bert-large-uncased"
+dtype: "fp16"
+attn_impl: "eager"
+use_lora: true
+max_length: 256
+

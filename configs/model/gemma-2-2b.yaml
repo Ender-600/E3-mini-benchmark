@@ -1,0 +1,8 @@
+name: "gemma-2-2b"
+arch: "decoder"
+pretrained: "google/gemma-2-2b"
+dtype: "fp16"
+attn_impl: "sdpa"
+use_lora: false
+max_length: 4096
+

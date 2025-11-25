@@ -1,0 +1,8 @@
+name: "gpt2-large"
+arch: "decoder"
+pretrained: "gpt2-large"
+dtype: "fp16"
+attn_impl: "eager"
+use_lora: true
+max_length: 1024
+

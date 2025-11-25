@@ -1,0 +1,8 @@
+name: "deberta-v3-base"
+arch: "encoder"
+pretrained: "microsoft/deberta-v3-base"
+dtype: "fp16"
+attn_impl: "eager"
+use_lora: false
+max_length: 512
+

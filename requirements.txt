@@ -14,3 +14,6 @@ seaborn>=0.12
 pyyaml>=6.0
 tqdm>=4.66
 wandb>=0.16
+tiktoken
+sentencepiece
+protobuf

@@ -1,0 +1,8 @@
+name: "qwen2.5-1.5b"
+arch: "decoder"
+pretrained: "Qwen/Qwen2.5-1.5B"
+dtype: "fp16"
+attn_impl: "sdpa"
+use_lora: false
+max_length: 4096
+

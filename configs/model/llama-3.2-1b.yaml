@@ -1,0 +1,10 @@
+name: "llama-3.2-1b"
+arch: "decoder"
+pretrained: "meta-llama/Llama-3.2-1B"
+dtype: "fp16"
+attn_impl: "sdpa"
+use_lora: false
+max_length: 4096
+
+
+

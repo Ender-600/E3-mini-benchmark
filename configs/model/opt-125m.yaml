@@ -1,0 +1,8 @@
+name: "opt-125m"
+arch: "decoder"
+pretrained: "facebook/opt-125m"
+dtype: "fp16"
+attn_impl: "eager"
+use_lora: false
+max_length: 2048
+

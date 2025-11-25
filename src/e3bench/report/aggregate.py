@@ -100,6 +100,8 @@ def aggregate_training_results(results: List[Dict[str, Any]]) -> pd.DataFrame:
             eval_loss = None
             train_loss = None
             macro_f1 = None
+            task_power = {}
+            task_duration = duration_seconds
             
             # New format: metrics directly contain eval_accuracy, eval_loss
             if "eval_accuracy" in task_metrics:
@@ -114,6 +116,23 @@ def aggregate_training_results(results: List[Dict[str, Any]]) -> pd.DataFrame:
                 eval_loss = mean_metrics.get("eval_loss", 0)
                 macro_f1 = mean_metrics.get("eval_macro_f1")
                 # Old format doesn't have train_loss in the aggregated results
+            
+            # Check for task-level power data (new format with train/eval split)
+            if "power" in task_metrics and isinstance(task_metrics["power"], dict):
+                task_power_data = task_metrics["power"]
+                
+                # Check if it's the new format with train/eval/total split
+                if "total" in task_power_data:
+                    task_power = task_power_data["total"]
+                    task_duration = task_power.get("duration_seconds", duration_seconds)
+                else:
+                    # Old task-level format (without train/eval split)
+                    task_power = task_power_data
+                    task_duration = task_power.get("duration_seconds", duration_seconds)
+            else:
+                # Fall back to experiment-level power data (old format)
+                task_power = power
+                task_duration = duration_seconds
             
             if eval_accuracy is not None:
                 # Calculate max_memory_gb for old format (stored per run)
@@ -133,10 +152,10 @@ def aggregate_training_results(results: List[Dict[str, Any]]) -> pd.DataFrame:
                     "macro_f1": macro_f1 if macro_f1 is not None else "",
                     "train_loss": train_loss or 0,
                     "eval_loss": eval_loss or 0,
-                    "duration_seconds": duration_seconds,
+                    "duration_seconds": task_duration,
                     "max_memory_gb": max_memory_gb,
-                    "avg_watt": power.get("avg_watt", 0),
-                    "kwh": power.get("kwh", 0),
+                    "avg_watt": task_power.get("avg_watt", 0) if task_power.get("avg_watt") is not None else 0,
+                    "kwh": task_power.get("kwh", 0) if task_power.get("kwh") is not None else 0,
                     "use_lora": model_config.get("use_lora", False),
                     "lora_r": train_config.get("lora_r", 0),
                     "lora_alpha": train_config.get("lora_alpha", 0),
@@ -259,6 +278,7 @@ def aggregate_inference_results(results: List[Dict[str, Any]]) -> pd.DataFrame:
                     "duration_seconds": timing.get("duration_seconds", 0),
                     "avg_watt": power.get("avg_watt", 0),
                     "kwh": power.get("kwh", 0),
+                    "inference_energy_per_sample_joules": ctx_metrics.get("inference_energy_per_sample_joules", 0),
                     "num_runs": ctx_metrics.get("total_runs", 0)
                 })
         else:
@@ -294,6 +314,7 @@ def aggregate_inference_results(results: List[Dict[str, Any]]) -> pd.DataFrame:
                 "duration_seconds": timing.get("duration_seconds", 0),
                 "avg_watt": power.get("avg_watt", 0),
                 "kwh": power.get("kwh", 0),
+                "inference_energy_per_sample_joules": metrics.get("inference_energy_per_sample_joules", 0),
                 "num_runs": metrics.get("total_runs", 0)
             })
     

@@ -1,0 +1,8 @@
+name: "opt-350m"
+arch: "decoder"
+pretrained: "facebook/opt-350m"
+dtype: "fp16"
+attn_impl: "eager"
+use_lora: false
+max_length: 2048
+

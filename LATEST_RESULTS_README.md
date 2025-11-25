@@ -61,9 +61,9 @@ When you run a new experiment with the same model/type, it automatically replace
 Just run experiments as usual. Results are automatically synced to `latest/`:
 
 ```bash
-make pretrain-bert    # Syncs to latest/cont_pretrain/bert-base-uncased.json
-make eval-bert-5shot  # Syncs to latest/fewshot/bert-base-uncased-5shot.json
-make train-gpt2       # Syncs to latest/superglue/gpt2.json
+make pretrain-bert       # Syncs to latest/cont_pretrain/bert-base-uncased.json
+make eval-bert-5shot     # Syncs to latest/fewshot/bert-base-uncased-5shot.json
+make superglue-gpt2      # Syncs to latest/superglue/gpt2.json
 ```
 
 ### Generating Reports

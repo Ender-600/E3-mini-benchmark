@@ -1,6 +1,6 @@
 {
-  "exp_id": "inference_scaling_20251113_191111",
-  "commit": "c9d44d13",
+  "exp_id": "inference_20251125_015202",
+  "commit": "cc2e32a6",
   "config": {
     "model": {
       "name": "gpt2",
@@ -12,96 +12,46 @@
       "max_length": 256
     },
     "bench": {
-      "name": "infer_decoder_scaling",
+      "name": "infer_decoder",
       "arch": "decoder",
-      "context_lengths": [
-        128,
-        256,
-        512,
-        1024
-      ],
-      "num_tokens": 50,
+      "max_length": 512,
+      "num_tokens": 100,
       "batch_size": 1,
-      "num_runs": 3,
-      "warmup_runs": 1
+      "num_runs": 5,
+      "warmup_runs": 2
     }
   },
   "metrics": {
-    "128": {
-      "ttft_ms": 14.09597396850586,
-      "ttft_std_ms": 0.2175047180936164,
-      "throughput_tokens_per_sec": 67.8888640655121,
-      "throughput_std": 0.7354115677761168,
-      "e2e_latency_ms": 736.5811824798584,
-      "e2e_std_ms": 8.246195872643833,
-      "total_runs": 15,
-      "tbt_ms": 14.206619327571117,
-      "tbt_std_ms": 0.1701611056016328,
-      "first_token_latency_ms": 14.09597396850586,
-      "latency_std_ms": 0.2175047180936164,
-      "max_memory_gb": 0.269073486328125,
-      "current_memory_gb": 0.2584104537963867
-    },
-    "256": {
-      "ttft_ms": 14.133437474568685,
-      "ttft_std_ms": 0.10668248455782325,
-      "throughput_tokens_per_sec": 67.21055577160237,
-      "throughput_std": 3.304106018477333,
-      "e2e_latency_ms": 745.9447383880615,
-      "e2e_std_ms": 43.895008027107075,
-      "total_runs": 15,
-      "tbt_ms": 14.396128362538862,
-      "tbt_std_ms": 0.8961415957699094,
-      "first_token_latency_ms": 14.133437474568685,
-      "latency_std_ms": 0.10668248455782325,
-      "max_memory_gb": 0.269073486328125,
-      "current_memory_gb": 0.2584104537963867
-    },
-    "512": {
-      "ttft_ms": 11.351760228474934,
-      "ttft_std_ms": 0.06177982703505897,
-      "throughput_tokens_per_sec": 84.42474381246024,
-      "throughput_std": 0.20891733357146866,
-      "e2e_latency_ms": 592.2468185424805,
-      "e2e_std_ms": 1.4663875549356828,
-      "total_runs": 15,
-      "tbt_ms": 11.306486648767173,
-      "tbt_std_ms": 0.02998982442309929,
-      "first_token_latency_ms": 11.351760228474934,
-      "latency_std_ms": 0.06177982703505897,
-      "max_memory_gb": 0.269073486328125,
-      "current_memory_gb": 0.2584104537963867
-    },
-    "1024": {
-      "ttft_ms": 11.381101608276367,
-      "ttft_std_ms": 0.061937208479412906,
-      "throughput_tokens_per_sec": 84.37018240361779,
-      "throughput_std": 0.13249652148967553,
-      "e2e_latency_ms": 592.6277955373129,
-      "e2e_std_ms": 0.9316187373692083,
-      "total_runs": 15,
-      "tbt_ms": 11.313905521314972,
-      "tbt_std_ms": 0.018863061044049063,
-      "first_token_latency_ms": 11.381101608276367,
-      "latency_std_ms": 0.061937208479412906,
-      "max_memory_gb": 0.269073486328125,
-      "current_memory_gb": 0.2584104537963867
-    }
+    "ttft_ms": 11.334247589111328,
+    "ttft_std_ms": 0.16261199493415016,
+    "throughput_tokens_per_sec": 84.13398926037029,
+    "throughput_std": 2.1880347497155146,
+    "e2e_latency_ms": 1189.4420433044434,
+    "e2e_std_ms": 34.53096138851074,
+    "total_runs": 25,
+    "inference_energy_per_sample_joules": 238.99519439435346,
+    "avg_power_watts": 197.84392857142856,
+    "tbt_ms": 11.443474220507072,
+    "tbt_std_ms": 0.3504143072715668,
+    "first_token_latency_ms": 11.334247589111328,
+    "latency_std_ms": 0.16261199493415016,
+    "max_memory_gb": 0.2785067558288574,
+    "current_memory_gb": 0.2584104537963867
   },
   "timing": {
-    "start_time": 1763082671.339839,
-    "end_time": 1763082720.8591058,
-    "duration_seconds": 49.519266843795776
+    "start_time": 1764057122.041359,
+    "end_time": 1764057159.576635,
+    "duration_seconds": 37.53527593612671
   },
   "resources": {
     "gpu_name": "Tesla V100-SXM2-32GB",
-    "max_memory_gb": 0.269073486328125,
+    "max_memory_gb": 0.2785067558288574,
     "cuda_version": "12.8"
   },
   "power": {
-    "avg_watt": null,
-    "kwh": null,
-    "duration_seconds": 50.47904634475708
+    "avg_watt": 197.84392857142856,
+    "kwh": 0.001659688849960788,
+    "duration_seconds": 30.199965715408325
   },
-  "timestamp": 1763082721.822966
+  "timestamp": 1764057159.5801756
 }

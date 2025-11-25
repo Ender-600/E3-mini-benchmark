@@ -21,7 +21,8 @@ logger = logging.getLogger(__name__)
 def benchmark_decoder_inference(
     model: Any,
     tokenizer: Any,
-    config: Dict[str, Any]
+    config: Dict[str, Any],
+    power_monitor: Any = None
 ) -> Dict[str, float]:
     """Benchmark decoder-only model inference with TTFT and TBT metrics."""
     
@@ -55,6 +56,10 @@ def benchmark_decoder_inference(
                     pad_token_id=tokenizer.eos_token_id
                 )
     
+    # Start power monitoring after warmup
+    if power_monitor:
+        power_monitor.start()
+
     # Benchmark runs with token-by-token timing
     logger.info("Running inference benchmark with TTFT/TBT measurement...")
     ttft_list = []  # Time-To-First-Token
@@ -145,6 +150,18 @@ def benchmark_decoder_inference(
         "e2e_std_ms": statistics.stdev(e2e_list) * 1000 if len(e2e_list) > 1 else 0,
         "total_runs": len(ttft_list)
     }
+
+    # Calculate energy stats
+    if power_monitor:
+        power_stats = power_monitor.stop()
+        if power_stats["avg_watt"] is not None:
+            # Energy = Power * Time
+            total_energy_joules = power_stats["avg_watt"] * power_stats["duration_seconds"]
+            # Energy per sample
+            total_samples = num_runs * len(prompts)
+            if total_samples > 0:
+                results["inference_energy_per_sample_joules"] = total_energy_joules / total_samples
+            results["avg_power_watts"] = power_stats["avg_watt"]
     
     # Add TBT if we have multiple tokens
     if len(tbt_list) > 0:
@@ -161,7 +178,8 @@ def benchmark_decoder_inference(
 def benchmark_seq2seq_inference(
     model: Any,
     tokenizer: Any,
-    config: Dict[str, Any]
+    config: Dict[str, Any],
+    power_monitor: Any = None
 ) -> Dict[str, float]:
     """Benchmark encoder-decoder model inference with TTFT and TBT metrics."""
     
@@ -195,6 +213,10 @@ def benchmark_seq2seq_inference(
                     pad_token_id=tokenizer.eos_token_id
                 )
     
+    # Start power monitoring after warmup
+    if power_monitor:
+        power_monitor.start()
+
     # Benchmark runs with token-by-token timing
     logger.info("Running inference benchmark with TTFT/TBT measurement...")
     ttft_list = []  # Time-To-First-Token (includes encoder + first decoder step)
@@ -286,6 +308,18 @@ def benchmark_seq2seq_inference(
         "e2e_std_ms": statistics.stdev(e2e_list) * 1000 if len(e2e_list) > 1 else 0,
         "total_runs": len(ttft_list)
     }
+
+    # Calculate energy stats
+    if power_monitor:
+        power_stats = power_monitor.stop()
+        if power_stats["avg_watt"] is not None:
+            # Energy = Power * Time
+            total_energy_joules = power_stats["avg_watt"] * power_stats["duration_seconds"]
+            # Energy per sample
+            total_samples = num_runs * len(test_cases)
+            if total_samples > 0:
+                results["inference_energy_per_sample_joules"] = total_energy_joules / total_samples
+            results["avg_power_watts"] = power_stats["avg_watt"]
     
     # Add TBT if we have multiple tokens
     if len(tbt_list) > 0:
@@ -302,7 +336,8 @@ def benchmark_seq2seq_inference(
 def benchmark_encoder_inference(
     model: Any,
     tokenizer: Any,
-    config: Dict[str, Any]
+    config: Dict[str, Any],
+    power_monitor: Any = None
 ) -> Dict[str, float]:
     """Benchmark encoder-only model inference (forward pass only)."""
     
@@ -329,6 +364,10 @@ def benchmark_encoder_inference(
             with torch.no_grad():
                 _ = model(**inputs)
     
+    # Start power monitoring after warmup
+    if power_monitor:
+        power_monitor.start()
+
     # Benchmark runs
     logger.info("Running inference benchmark...")
     latencies = []
@@ -353,18 +392,33 @@ def benchmark_encoder_inference(
         latencies.extend(run_latencies)
     
     # Calculate statistics
-    return {
+    results = {
         "forward_pass_latency_ms": statistics.mean(latencies) * 1000,
         "latency_std_ms": statistics.stdev(latencies) * 1000,
         "total_runs": len(latencies)
     }
+
+    # Calculate energy stats
+    if power_monitor:
+        power_stats = power_monitor.stop()
+        if power_stats["avg_watt"] is not None:
+            # Energy = Power * Time
+            total_energy_joules = power_stats["avg_watt"] * power_stats["duration_seconds"]
+            # Energy per sample
+            total_samples = num_runs * len(texts)
+            if total_samples > 0:
+                results["inference_energy_per_sample_joules"] = total_energy_joules / total_samples
+            results["avg_power_watts"] = power_stats["avg_watt"]
+
+    return results
 
 
 def benchmark_with_context_scaling(
     model: Any,
     tokenizer: Any,
     config: Dict[str, Any],
-    arch: str
+    arch: str,
+    power_monitor: Any = None
 ) -> Dict[str, Any]:
     """
     Benchmark model across multiple context lengths to generate latency curve.
@@ -374,6 +428,7 @@ def benchmark_with_context_scaling(
         tokenizer: The tokenizer
         config: Benchmark configuration with context_lengths list
         arch: Model architecture (decoder, encdec, encoder)
+        power_monitor: Power monitor instance
     
     Returns:
         Dictionary with per-context-length results
@@ -402,11 +457,11 @@ def benchmark_with_context_scaling(
         
         # Run benchmark for this context length
         if arch == "decoder":
-            metrics = benchmark_decoder_inference(model, tokenizer, ctx_config)
+            metrics = benchmark_decoder_inference(model, tokenizer, ctx_config, power_monitor)
         elif arch == "encdec":
-            metrics = benchmark_seq2seq_inference(model, tokenizer, ctx_config)
+            metrics = benchmark_seq2seq_inference(model, tokenizer, ctx_config, power_monitor)
         elif arch == "encoder":
-            metrics = benchmark_encoder_inference(model, tokenizer, ctx_config)
+            metrics = benchmark_encoder_inference(model, tokenizer, ctx_config, power_monitor)
         else:
             raise ValueError(f"Unknown architecture: {arch}")
         
@@ -450,8 +505,9 @@ def benchmark_inference(
         logger.info(f"Running context length scaling benchmark: {exp_id}")
     
     # Start power monitoring
+    # Note: We initialize it here but let the specific benchmark functions start/stop it
+    # to capture only the inference phase (excluding model loading/warmup)
     power_monitor = PowerMonitor()
-    power_monitor.start()
     
     start_time = time.time()
     
@@ -486,14 +542,14 @@ def benchmark_inference(
         
         # Choose between scaling and single-point benchmark
         if is_scaling:
-            metrics = benchmark_with_context_scaling(model, tokenizer, bench_config, arch)
+            metrics = benchmark_with_context_scaling(model, tokenizer, bench_config, arch, power_monitor)
         else:
             if arch == "decoder":
-                metrics = benchmark_decoder_inference(model, tokenizer, bench_config)
+                metrics = benchmark_decoder_inference(model, tokenizer, bench_config, power_monitor)
             elif arch == "encdec":
-                metrics = benchmark_seq2seq_inference(model, tokenizer, bench_config)
+                metrics = benchmark_seq2seq_inference(model, tokenizer, bench_config, power_monitor)
             elif arch == "encoder":
-                metrics = benchmark_encoder_inference(model, tokenizer, bench_config)
+                metrics = benchmark_encoder_inference(model, tokenizer, bench_config, power_monitor)
             else:
                 raise ValueError(f"Unknown architecture: {arch}")
         

@@ -1,0 +1,8 @@
+name: "switch-base-8"
+arch: "encdec"
+pretrained: "google/switch-base-8"
+dtype: "fp16"
+attn_impl: "eager"
+use_lora: false
+max_length: 512
+

@@ -1,0 +1,8 @@
+name: "t5-large"
+arch: "encdec"
+pretrained: "t5-large"
+dtype: "fp16"
+attn_impl: "eager"
+use_lora: false
+max_length: 512
+

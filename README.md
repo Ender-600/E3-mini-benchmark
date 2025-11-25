@@ -2,9 +2,9 @@
 
 A comprehensive benchmark for comparing **encoder-only**, **encoder-decoder**, and **decoder-only** language models across three "E" axes:
 
-1. **Efficiency (Training)** - Continued pretraining proxy with equal tokens
-2. **Efficiency (Inference)** - Latency/throughput/VRAM benchmarking  
-3. **Effectiveness** - NLU fine-tuning (SuperGLUE) and zero/few-shot evaluation (MMLU/ARC/HellaSwag)
+1. **Efficiency** - Time dimension (Training speed, Inference latency/throughput)
+2. **Energy** - Energy dimension (Training kWh, Inference Joules)
+3. **Effectiveness** - Quality (SuperGLUE, MMLU, Generation Quality)
 
 ## Hardware Requirements
 
@@ -30,7 +30,7 @@ pip install -r requirements.txt
 
 1. **SuperGLUE Fine-tuning (LoRA)**
    ```bash
-   make train
+   make superglue-finetune
    ```
 
 2. **Few-shot Evaluation**
@@ -40,7 +40,7 @@ pip install -r requirements.txt
 
 3. **Inference Benchmarking**
    ```bash
-   make bench
+   make infer
    ```
 
 4. **Generate Reports and Figures**
@@ -67,11 +67,15 @@ E3-mini-benchmark/
 - **tables/**: Aggregated CSV tables for analysis
 - **figs/**: Visualization plots for efficiency and effectiveness comparisons
 
-## E³ Definition
+## E³ Evaluation Framework
 
-- **Efficiency (Training)**: Time and energy to reach target validation loss during continued pretraining
-- **Efficiency (Inference)**: Latency, throughput, and VRAM usage during inference
-- **Effectiveness**: Performance on downstream tasks via fine-tuning and few-shot evaluation
+Efficiency: Training Tokens/sec, Inference Latency (TTFT, TBT).
+
+Energy: Training to Convergence Energy (kWh), Inference Energy per Sample (Joules).
+
+Effectiveness: SuperGLUE (NLU), MMLU (Knowledge), Generation Quality.
+
+While Efficiency and Energy are physically related, Efficiency focuses on the "time dimension" (latency, throughput, time-to-X), whereas Energy focuses specifically on the "energy consumption dimension" (kWh, J/token). Although related, they answer different questions: "How fast can it finish?" vs "How much electricity/cost does it take to finish?"
 
 ## License
 
