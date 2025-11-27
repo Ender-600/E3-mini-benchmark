@@ -1,0 +1,289 @@
+{
+  "exp_id": "superglue_20251127_045909",
+  "model": {
+    "name": "flan-t5-large",
+    "arch": "encdec",
+    "pretrained": "google/flan-t5-large",
+    "dtype": "fp16",
+    "attn_impl": "eager",
+    "use_lora": true,
+    "max_length": 512
+  },
+  "task_cfg": {
+    "name": "superglue",
+    "tasks": [
+      "BoolQ",
+      "RTE",
+      "WiC",
+      "CB"
+    ],
+    "max_length": 256
+  },
+  "train_cfg": {
+    "name": "lora",
+    "fp16": false,
+    "grad_checkpointing": false,
+    "per_device_train_batch_size": 16,
+    "per_device_eval_batch_size": 32,
+    "gradient_accumulation_steps": 2,
+    "num_train_epochs": 5,
+    "learning_rate": 5e-05,
+    "weight_decay": 0.01,
+    "warmup_ratio": 0.1,
+    "max_length": 256,
+    "seed": [
+      42
+    ],
+    "save_strategy": "epoch",
+    "eval_strategy": "epoch",
+    "logging_steps": 10,
+    "save_total_limit": 2,
+    "lora_r": 16,
+    "lora_alpha": 32,
+    "lora_dropout": 0.05
+  },
+  "results": {
+    "BoolQ": {
+      "runs": [
+        {
+          "seed": 42,
+          "train_time_seconds": 1764.9697065353394,
+          "max_memory_gb": 24.188853248,
+          "gpu_name": "Tesla V100-SXM2-32GB",
+          "train_loss": 0.7684043294251567,
+          "eval_loss": 0.14457964897155762,
+          "eval_accuracy": 0.8397553516819571,
+          "eval_runtime": 103.9238,
+          "eval_samples_per_second": 31.465,
+          "eval_steps_per_second": 0.337,
+          "epoch": 5.0
+        }
+      ],
+      "mean": {
+        "train_loss": 0.7684043294251567,
+        "eval_loss": 0.14457964897155762,
+        "eval_accuracy": 0.8397553516819571,
+        "eval_runtime": 103.9238,
+        "eval_samples_per_second": 31.465,
+        "eval_steps_per_second": 0.337,
+        "epoch": 5.0
+      },
+      "std": {
+        "train_loss": 0.0,
+        "eval_loss": 0.0,
+        "eval_accuracy": 0.0,
+        "eval_runtime": 0.0,
+        "eval_samples_per_second": 0.0,
+        "eval_steps_per_second": 0.0,
+        "epoch": 0.0
+      },
+      "trainable_params": 9437184,
+      "lora_params": {
+        "trainable_params": 9437184,
+        "total_params": 792587264,
+        "trainable_percentage": 1.1906807525991232
+      },
+      "power": {
+        "train": {
+          "avg_watt": 640.6547263361232,
+          "kwh": 0.3141505362036451,
+          "duration_seconds": 1764.9697065353394
+        },
+        "eval": {
+          "avg_watt": 538.4422580645161,
+          "kwh": 0.01569198018899423,
+          "duration_seconds": 103.92544651031494
+        },
+        "total": {
+          "avg_watt": 634.9708995110939,
+          "kwh": 0.3298425163926393,
+          "duration_seconds": 1868.8951530456543
+        }
+      }
+    },
+    "RTE": {
+      "runs": [
+        {
+          "seed": 42,
+          "train_time_seconds": 351.5230119228363,
+          "max_memory_gb": 24.429925376,
+          "gpu_name": "Tesla V100-SXM2-32GB",
+          "train_loss": 2.4669404323284443,
+          "eval_loss": 0.7361130118370056,
+          "eval_accuracy": 0.5956678700361011,
+          "eval_runtime": 8.9148,
+          "eval_samples_per_second": 31.072,
+          "eval_steps_per_second": 0.337,
+          "epoch": 5.0
+        }
+      ],
+      "mean": {
+        "train_loss": 2.4669404323284443,
+        "eval_loss": 0.7361130118370056,
+        "eval_accuracy": 0.5956678700361011,
+        "eval_runtime": 8.9148,
+        "eval_samples_per_second": 31.072,
+        "eval_steps_per_second": 0.337,
+        "epoch": 5.0
+      },
+      "std": {
+        "train_loss": 0.0,
+        "eval_loss": 0.0,
+        "eval_accuracy": 0.0,
+        "eval_runtime": 0.0,
+        "eval_samples_per_second": 0.0,
+        "eval_steps_per_second": 0.0,
+        "epoch": 0.0
+      },
+      "trainable_params": 9437184,
+      "lora_params": {
+        "trainable_params": 9437184,
+        "total_params": 792587264,
+        "trainable_percentage": 1.1906807525991232
+      },
+      "power": {
+        "train": {
+          "avg_watt": 627.0284789644013,
+          "kwh": 0.061337628471379656,
+          "duration_seconds": 351.5230119228363
+        },
+        "eval": {
+          "avg_watt": 476.65999999999997,
+          "kwh": 0.001199781271123886,
+          "duration_seconds": 8.916295528411865
+        },
+        "total": {
+          "avg_watt": 623.3087686861717,
+          "kwh": 0.06253740974250355,
+          "duration_seconds": 360.43930745124817
+        }
+      }
+    },
+    "WiC": {
+      "runs": [
+        {
+          "seed": 42,
+          "train_time_seconds": 521.309595823288,
+          "max_memory_gb": 11.192056832,
+          "gpu_name": "Tesla V100-SXM2-32GB",
+          "train_loss": 0.8975333297461794,
+          "eval_loss": 0.22597603499889374,
+          "eval_accuracy": 0.5862068965517241,
+          "eval_runtime": 7.5587,
+          "eval_samples_per_second": 84.406,
+          "eval_steps_per_second": 0.926,
+          "epoch": 5.0
+        }
+      ],
+      "mean": {
+        "train_loss": 0.8975333297461794,
+        "eval_loss": 0.22597603499889374,
+        "eval_accuracy": 0.5862068965517241,
+        "eval_runtime": 7.5587,
+        "eval_samples_per_second": 84.406,
+        "eval_steps_per_second": 0.926,
+        "epoch": 5.0
+      },
+      "std": {
+        "train_loss": 0.0,
+        "eval_loss": 0.0,
+        "eval_accuracy": 0.0,
+        "eval_runtime": 0.0,
+        "eval_samples_per_second": 0.0,
+        "eval_steps_per_second": 0.0,
+        "epoch": 0.0
+      },
+      "trainable_params": 9437184,
+      "lora_params": {
+        "trainable_params": 9437184,
+        "total_params": 792587264,
+        "trainable_percentage": 1.1906807525991232
+      },
+      "power": {
+        "train": {
+          "avg_watt": 429.2424190064793,
+          "kwh": 0.06217886601959378,
+          "duration_seconds": 521.309595823288
+        },
+        "eval": {
+          "avg_watt": 533.6871428571429,
+          "kwh": 0.001141617926471574,
+          "duration_seconds": 7.560015678405762
+        },
+        "total": {
+          "avg_watt": 430.73542169119725,
+          "kwh": 0.06332048394606535,
+          "duration_seconds": 528.8696115016937
+        }
+      }
+    },
+    "CB": {
+      "runs": [
+        {
+          "seed": 42,
+          "train_time_seconds": 29.56454610824585,
+          "max_memory_gb": 23.414481408,
+          "gpu_name": "Tesla V100-SXM2-32GB",
+          "train_loss": 7.151217142740886,
+          "eval_loss": 7.564521312713623,
+          "eval_accuracy": 0.4107142857142857,
+          "eval_macro_f1": 0.1940928270042194,
+          "eval_runtime": 2.1214,
+          "eval_samples_per_second": 26.398,
+          "eval_steps_per_second": 0.471,
+          "epoch": 3.0
+        }
+      ],
+      "mean": {
+        "train_loss": 7.151217142740886,
+        "eval_loss": 7.564521312713623,
+        "eval_accuracy": 0.4107142857142857,
+        "eval_macro_f1": 0.1940928270042194,
+        "eval_runtime": 2.1214,
+        "eval_samples_per_second": 26.398,
+        "eval_steps_per_second": 0.471,
+        "epoch": 3.0
+      },
+      "std": {
+        "train_loss": 0.0,
+        "eval_loss": 0.0,
+        "eval_accuracy": 0.0,
+        "eval_macro_f1": 0.0,
+        "eval_runtime": 0.0,
+        "eval_samples_per_second": 0.0,
+        "eval_steps_per_second": 0.0,
+        "epoch": 0.0
+      },
+      "trainable_params": 9437184,
+      "lora_params": {
+        "trainable_params": 9437184,
+        "total_params": 792587264,
+        "trainable_percentage": 1.1906807525991232
+      },
+      "power": {
+        "train": {
+          "avg_watt": 607.8296296296297,
+          "kwh": 0.005137168729888559,
+          "duration_seconds": 29.56454610824585
+        },
+        "eval": {
+          "avg_watt": 425.96000000000004,
+          "kwh": 0.00025891655110518144,
+          "duration_seconds": 2.122715711593628
+        },
+        "total": {
+          "avg_watt": 595.64626325132,
+          "kwh": 0.0053960852809937405,
+          "duration_seconds": 31.687261819839478
+        }
+      }
+    }
+  },
+  "power": {
+    "avg_watt": 591.4617149758454,
+    "kwh": 0.46348842844856764,
+    "duration_seconds": 2820.7321469783783
+  },
+  "start_time": 1764241149.8722112,
+  "end_time": 1764243970.6043582
+}

@@ -3,6 +3,6 @@ arch: "decoder"
 pretrained: "Qwen/Qwen2.5-0.5B"
 dtype: "fp16"
 attn_impl: "sdpa"
-use_lora: false
+use_lora: true
 max_length: 4096
 

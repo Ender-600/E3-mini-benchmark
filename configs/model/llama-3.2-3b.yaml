@@ -3,6 +3,6 @@ arch: "decoder"
 pretrained: "meta-llama/Llama-3.2-3B"
 dtype: "fp16"
 attn_impl: "sdpa"
-use_lora: false
+use_lora: true
 max_length: 4096
 

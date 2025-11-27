@@ -89,8 +89,8 @@ def load_model_and_tokenizer(
                 attn_implementation=config.get("attn_impl", "standard")
             )
         elif num_labels is not None:
-            from transformers import GPT2ForSequenceClassification
-            model = GPT2ForSequenceClassification.from_pretrained(
+            # Use AutoModelForSequenceClassification to auto-detect model architecture
+            model = AutoModelForSequenceClassification.from_pretrained(
                 model_name,
                 num_labels=num_labels,
                 torch_dtype=torch.float16 if dtype == "fp16" else torch.float32,

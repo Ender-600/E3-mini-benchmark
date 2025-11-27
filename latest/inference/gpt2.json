@@ -1,6 +1,6 @@
 {
-  "exp_id": "inference_20251125_015202",
-  "commit": "cc2e32a6",
+  "exp_id": "inference_20251127_045047",
+  "commit": "820050ad",
   "config": {
     "model": {
       "name": "gpt2",
@@ -22,26 +22,26 @@
     }
   },
   "metrics": {
-    "ttft_ms": 11.334247589111328,
-    "ttft_std_ms": 0.16261199493415016,
-    "throughput_tokens_per_sec": 84.13398926037029,
-    "throughput_std": 2.1880347497155146,
-    "e2e_latency_ms": 1189.4420433044434,
-    "e2e_std_ms": 34.53096138851074,
+    "ttft_ms": 10.994873046875,
+    "ttft_std_ms": 1.2221389633616544,
+    "throughput_tokens_per_sec": 87.92320952479653,
+    "throughput_std": 9.335589101316579,
+    "e2e_latency_ms": 1150.0194358825684,
+    "e2e_std_ms": 124.58071768698744,
     "total_runs": 25,
-    "inference_energy_per_sample_joules": 238.99519439435346,
-    "avg_power_watts": 197.84392857142856,
-    "tbt_ms": 11.443474220507072,
-    "tbt_std_ms": 0.3504143072715668,
-    "first_token_latency_ms": 11.334247589111328,
-    "latency_std_ms": 0.16261199493415016,
+    "inference_energy_per_sample_joules": 235.03281542857138,
+    "avg_power_watts": 203.52481481481485,
+    "tbt_ms": 11.047612681533352,
+    "tbt_std_ms": 1.2529181078919542,
+    "first_token_latency_ms": 10.994873046875,
+    "latency_std_ms": 1.2221389633616544,
     "max_memory_gb": 0.2785067558288574,
     "current_memory_gb": 0.2584104537963867
   },
   "timing": {
-    "start_time": 1764057122.041359,
-    "end_time": 1764057159.576635,
-    "duration_seconds": 37.53527593612671
+    "start_time": 1764240647.5192385,
+    "end_time": 1764240680.3195074,
+    "duration_seconds": 32.80026888847351
   },
   "resources": {
     "gpu_name": "Tesla V100-SXM2-32GB",
@@ -49,9 +49,9 @@
     "cuda_version": "12.8"
   },
   "power": {
-    "avg_watt": 197.84392857142856,
-    "kwh": 0.001659688849960788,
-    "duration_seconds": 30.199965715408325
+    "avg_watt": 203.52481481481485,
+    "kwh": 0.0016321723293650794,
+    "duration_seconds": 28.87028980255127
   },
-  "timestamp": 1764057159.5801756
+  "timestamp": 1764240680.3267412
 }
