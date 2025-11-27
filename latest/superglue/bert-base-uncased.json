@@ -1,5 +1,5 @@
 {
-  "exp_id": "superglue_20251125_044704",
+  "exp_id": "superglue_20251126_203824",
   "model": {
     "name": "bert-base-uncased",
     "arch": "encoder",
@@ -47,15 +47,15 @@
       "runs": [
         {
           "seed": 42,
-          "train_time_seconds": 317.2829785346985,
+          "train_time_seconds": 309.2753551006317,
           "max_memory_gb": 5.46198272,
           "gpu_name": "Tesla V100-SXM2-32GB",
           "train_loss": 0.6538163326882027,
           "eval_loss": 0.6399264931678772,
           "eval_accuracy": 0.6394495412844037,
-          "eval_runtime": 8.1498,
-          "eval_samples_per_second": 401.237,
-          "eval_steps_per_second": 3.19,
+          "eval_runtime": 8.159,
+          "eval_samples_per_second": 400.783,
+          "eval_steps_per_second": 3.187,
           "epoch": 5.0
         }
       ],
@@ -63,9 +63,9 @@
         "train_loss": 0.6538163326882027,
         "eval_loss": 0.6399264931678772,
         "eval_accuracy": 0.6394495412844037,
-        "eval_runtime": 8.1498,
-        "eval_samples_per_second": 401.237,
-        "eval_steps_per_second": 3.19,
+        "eval_runtime": 8.159,
+        "eval_samples_per_second": 400.783,
+        "eval_steps_per_second": 3.187,
         "epoch": 5.0
       },
       "std": {
@@ -85,19 +85,19 @@
       },
       "power": {
         "train": {
-          "avg_watt": 848.1094117647056,
-          "kwh": 0.07496633993690541,
-          "duration_seconds": 317.2829785346985
+          "avg_watt": 880.7660563380284,
+          "kwh": 0.07571799915115707,
+          "duration_seconds": 309.2753551006317
         },
         "eval": {
-          "avg_watt": 716.2349999999999,
-          "kwh": 0.0017281055726041396,
-          "duration_seconds": 8.150715112686157
+          "avg_watt": 846.8075,
+          "kwh": 0.002047460774508781,
+          "duration_seconds": 8.159862518310547
         },
         "total": {
-          "avg_watt": 844.8065246269286,
-          "kwh": 0.07669444550950955,
-          "duration_seconds": 325.43369364738464
+          "avg_watt": 879.8931312948744,
+          "kwh": 0.07776545992566584,
+          "duration_seconds": 317.43521761894226
         }
       }
     },
@@ -105,15 +105,15 @@
       "runs": [
         {
           "seed": 42,
-          "train_time_seconds": 46.64865064620972,
+          "train_time_seconds": 43.818044662475586,
           "max_memory_gb": 5.485836288,
           "gpu_name": "Tesla V100-SXM2-32GB",
           "train_loss": 0.7058460791905721,
           "eval_loss": 0.6962996125221252,
           "eval_accuracy": 0.5270758122743683,
-          "eval_runtime": 0.9055,
-          "eval_samples_per_second": 305.919,
-          "eval_steps_per_second": 3.313,
+          "eval_runtime": 0.7563,
+          "eval_samples_per_second": 366.255,
+          "eval_steps_per_second": 3.967,
           "epoch": 3.0
         }
       ],
@@ -121,9 +121,9 @@
         "train_loss": 0.7058460791905721,
         "eval_loss": 0.6962996125221252,
         "eval_accuracy": 0.5270758122743683,
-        "eval_runtime": 0.9055,
-        "eval_samples_per_second": 305.919,
-        "eval_steps_per_second": 3.313,
+        "eval_runtime": 0.7563,
+        "eval_samples_per_second": 366.255,
+        "eval_steps_per_second": 3.967,
         "epoch": 3.0
       },
       "std": {
@@ -143,19 +143,19 @@
       },
       "power": {
         "train": {
-          "avg_watt": 732.3527906976745,
-          "kwh": 0.009641584992884682,
-          "duration_seconds": 46.64865064620972
+          "avg_watt": 663.1867500000001,
+          "kwh": 0.008100367961878976,
+          "duration_seconds": 43.818044662475586
         },
         "eval": {
-          "avg_watt": 282.98,
-          "kwh": 8.679009845256805e-05,
-          "duration_seconds": 0.9062457084655762
+          "avg_watt": 304.53,
+          "kwh": 9.214146017034847e-05,
+          "duration_seconds": 0.7569966316223145
         },
         "total": {
-          "avg_watt": 723.7891685622448,
-          "kwh": 0.009728375091337251,
-          "duration_seconds": 47.55489635467529
+          "avg_watt": 657.0958537545589,
+          "kwh": 0.008192509422049325,
+          "duration_seconds": 44.5750412940979
         }
       }
     },
@@ -163,15 +163,15 @@
       "runs": [
         {
           "seed": 42,
-          "train_time_seconds": 154.21372866630554,
+          "train_time_seconds": 151.1486165523529,
           "max_memory_gb": 2.074572288,
           "gpu_name": "Tesla V100-SXM2-32GB",
           "train_loss": 0.6794742406800736,
           "eval_loss": 0.6737088561058044,
           "eval_accuracy": 0.5752351097178683,
-          "eval_runtime": 0.8193,
-          "eval_samples_per_second": 778.744,
-          "eval_steps_per_second": 6.103,
+          "eval_runtime": 0.8391,
+          "eval_samples_per_second": 760.348,
+          "eval_steps_per_second": 5.959,
           "epoch": 5.0
         }
       ],
@@ -179,9 +179,9 @@
         "train_loss": 0.6794742406800736,
         "eval_loss": 0.6737088561058044,
         "eval_accuracy": 0.5752351097178683,
-        "eval_runtime": 0.8193,
-        "eval_samples_per_second": 778.744,
-        "eval_steps_per_second": 6.103,
+        "eval_runtime": 0.8391,
+        "eval_samples_per_second": 760.348,
+        "eval_steps_per_second": 5.959,
         "epoch": 5.0
       },
       "std": {
@@ -201,19 +201,19 @@
       },
       "power": {
         "train": {
-          "avg_watt": 325.6221126760564,
-          "kwh": 0.01403919488526888,
-          "duration_seconds": 154.21372866630554
+          "avg_watt": 355.33438848920866,
+          "kwh": 0.014958292408103186,
+          "duration_seconds": 151.1486165523529
         },
         "eval": {
-          "avg_watt": 254.05,
-          "kwh": 7.67483155793614e-05,
-          "duration_seconds": 0.8200666904449463
+          "avg_watt": 246.89000000000001,
+          "kwh": 7.32693171547519e-05,
+          "duration_seconds": 0.8397743701934814
         },
         "total": {
-          "avg_watt": 325.24352486276484,
-          "kwh": 0.014115943200848241,
-          "duration_seconds": 155.0337953567505
+          "avg_watt": 354.73520576550345,
+          "kwh": 0.015031561725257938,
+          "duration_seconds": 151.9883909225464
         }
       }
     },
@@ -221,16 +221,16 @@
       "runs": [
         {
           "seed": 42,
-          "train_time_seconds": 6.305281400680542,
+          "train_time_seconds": 6.489161968231201,
           "max_memory_gb": 5.264887808,
           "gpu_name": "Tesla V100-SXM2-32GB",
           "train_loss": 0.9238996505737305,
           "eval_loss": 0.9624791145324707,
           "eval_accuracy": 0.44642857142857145,
           "eval_macro_f1": 0.20576131687242796,
-          "eval_runtime": 0.1931,
-          "eval_samples_per_second": 290.06,
-          "eval_steps_per_second": 5.18,
+          "eval_runtime": 0.1921,
+          "eval_samples_per_second": 291.577,
+          "eval_steps_per_second": 5.207,
           "epoch": 3.0
         }
       ],
@@ -239,9 +239,9 @@
         "eval_loss": 0.9624791145324707,
         "eval_accuracy": 0.44642857142857145,
         "eval_macro_f1": 0.20576131687242796,
-        "eval_runtime": 0.1931,
-        "eval_samples_per_second": 290.06,
-        "eval_steps_per_second": 5.18,
+        "eval_runtime": 0.1921,
+        "eval_samples_per_second": 291.577,
+        "eval_steps_per_second": 5.207,
         "epoch": 3.0
       },
       "std": {
@@ -262,19 +262,19 @@
       },
       "power": {
         "train": {
-          "avg_watt": 641.215,
-          "kwh": 0.0011916158063342173,
-          "duration_seconds": 6.305281400680542
+          "avg_watt": 421.85666666666674,
+          "kwh": 0.0007785252494403611,
+          "duration_seconds": 6.489161968231201
         },
         "eval": {
-          "avg_watt": 278.59999999999997,
-          "kwh": 8.530355258782704e-05,
-          "duration_seconds": 0.19461584091186523
+          "avg_watt": 287.56,
+          "kwh": 8.876249855889214e-05,
+          "duration_seconds": 0.19328975677490234
         },
         "total": {
-          "avg_watt": 630.3578094123275,
-          "kwh": 0.0012769193589220443,
-          "duration_seconds": 6.499897241592407
+          "avg_watt": 417.97213878619687,
+          "kwh": 0.0008672877479992533,
+          "duration_seconds": 6.6824517250061035
         }
       }
     }
@@ -282,8 +282,8 @@
   "power": {
     "avg_watt": null,
     "kwh": null,
-    "duration_seconds": 554.7510442733765
+    "duration_seconds": 551.7557594776154
   },
-  "start_time": 1764067624.548537,
-  "end_time": 1764068179.2995813
+  "start_time": 1764211104.0874877,
+  "end_time": 1764211655.8432472
 }
