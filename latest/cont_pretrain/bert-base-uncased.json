@@ -1,6 +1,6 @@
 {
-  "exp_id": "cont_pretrain_20251110_210023",
-  "commit": "a88c5168",
+  "exp_id": "cont_pretrain_20251128_012755",
+  "commit": "ee40a513",
   "config": {
     "model": {
       "name": "bert-base-uncased",
@@ -44,8 +44,8 @@
     "epochs_trained": 3,
     "total_tokens": 614400,
     "token_budget": 1000000,
-    "duration_seconds": 119.62546563148499,
-    "tokens_per_second": 5136.030165121399,
+    "duration_seconds": 107.05502772331238,
+    "tokens_per_second": 5739.104580757657,
     "target_reached": true,
     "lora_params": {
       "trainable_params": 2678784,
@@ -54,9 +54,9 @@
     }
   },
   "timing": {
-    "start_time": 1762830023.762188,
-    "end_time": 1762830143.3909166,
-    "duration_seconds": 119.62872862815857
+    "start_time": 1764314875.0296133,
+    "end_time": 1764314982.087621,
+    "duration_seconds": 107.05800771713257
   },
   "resources": {
     "gpu_name": "Tesla V100-SXM2-32GB",
@@ -64,9 +64,9 @@
     "cuda_version": "12.8"
   },
   "power": {
-    "avg_watt": 623.3844954128442,
-    "kwh": 0.020746582735001937,
-    "duration_seconds": 119.81000232696533
+    "avg_watt": 637.0228865979383,
+    "kwh": 0.018944123835678884,
+    "duration_seconds": 107.05870580673218
   },
-  "timestamp": 1762830143.5742722
+  "timestamp": 1764314982.0931761
 }
