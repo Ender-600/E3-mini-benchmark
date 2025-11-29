@@ -1,11 +1,11 @@
 {
-  "exp_id": "cont_pretrain_20251128_195127",
+  "exp_id": "cont_pretrain_20251128_194834",
   "commit": "47745160",
   "config": {
     "model": {
-      "name": "t5-base",
-      "arch": "encdec",
-      "pretrained": "t5-base",
+      "name": "bert-large-uncased",
+      "arch": "encoder",
+      "pretrained": "bert-large-uncased",
       "dtype": "fp16",
       "attn_impl": "eager",
       "use_lora": true,
@@ -39,34 +39,34 @@
     "token_budget": 1000000
   },
   "metrics": {
-    "final_eval_loss": 2.005608320236206,
-    "best_eval_loss": 2.005608320236206,
-    "epochs_trained": 5,
-    "total_tokens": 661760,
+    "final_eval_loss": 1.9584017992019653,
+    "best_eval_loss": 1.881754755973816,
+    "epochs_trained": 2,
+    "total_tokens": 409600,
     "token_budget": 1000000,
-    "duration_seconds": 169.36327528953552,
-    "tokens_per_second": 3907.340590034564,
-    "target_reached": false,
+    "duration_seconds": 166.01775741577148,
+    "tokens_per_second": 2467.205956614666,
+    "target_reached": true,
     "lora_params": {
-      "trainable_params": 3538944,
-      "total_params": 226442496,
-      "trainable_percentage": 1.5628444583122771
+      "trainable_params": 7110656,
+      "total_params": 342285114,
+      "trainable_percentage": 2.077407316054066
     }
   },
   "timing": {
-    "start_time": 1764381087.2554328,
-    "end_time": 1764381256.6248112,
-    "duration_seconds": 169.36937832832336
+    "start_time": 1764380914.6450596,
+    "end_time": 1764381080.6691442,
+    "duration_seconds": 166.02408456802368
   },
   "resources": {
     "gpu_name": "Tesla V100-SXM2-32GB",
-    "max_memory_gb": 8.213850021362305,
+    "max_memory_gb": 15.786177635192871,
     "cuda_version": "12.8"
   },
   "power": {
-    "avg_watt": 674.678701298701,
-    "kwh": 0.031921440434407845,
-    "duration_seconds": 170.32875847816467
+    "avg_watt": 759.6635761589408,
+    "kwh": 0.03513910282516008,
+    "duration_seconds": 166.52209496498108
   },
-  "timestamp": 1764381257.5897598
+  "timestamp": 1764381081.1727166
 }
