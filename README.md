@@ -1,10 +1,12 @@
 # E³ Mini-Benchmark
 
-A comprehensive benchmark for comparing **encoder-only**, **encoder-decoder**, and **decoder-only** language models across three "E" axes:
+A general-purpose benchmark designed for evaluating **Small Language Models (SLMs)** across three "E" axes:
 
 1. **Efficiency** - Time dimension (Training speed, Inference latency/throughput)
 2. **Energy** - Energy dimension (Training kWh, Inference Joules)
 3. **Effectiveness** - Quality (SuperGLUE, MMLU, Generation Quality)
+
+One of the primary tasks demonstrated with this benchmark is the comparison of **encoder-only**, **encoder-decoder**, and **decoder-only** architectures, highlighting tradeoffs in efficiency, energy, and effectiveness. You can view the experimental results for this comparison at [https://ender-600.github.io/llm-arch-compare/](https://ender-600.github.io/llm-arch-compare/).
 
 ## Hardware Requirements
 
