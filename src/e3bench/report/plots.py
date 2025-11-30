@@ -13,6 +13,20 @@ import math
 logger = logging.getLogger(__name__)
 
 
+# Global style registry for unified visualization
+STYLE_CONFIG = {
+    'encoder': {'color': '#2ecc71', 'marker': 'o', 'label': 'Encoder-only'},
+    'decoder': {'color': '#e74c3c', 'marker': '^', 'label': 'Decoder-only'},
+    'encdec':  {'color': '#3498db', 'marker': 's', 'label': 'Encoder-Decoder'}
+}
+
+
+def get_style(arch: str) -> Dict[str, Any]:
+    """Get style configuration for a given architecture."""
+    return STYLE_CONFIG.get(arch, {'color': 'gray', 'marker': 'o', 'label': arch})
+
+
+
 def generate_plots(
     tables_dir: str = "tables",
     output_dir: str = "figs"
@@ -47,6 +61,10 @@ def generate_plots(
     if os.path.exists(pretraining_path):
         generate_pretraining_plots(pd.read_csv(pretraining_path), output_dir)
     
+    # Generate unified E3 trade-off plots
+    if os.path.exists(inference_path) and os.path.exists(fewshot_path):
+        generate_tradeoff_plots(tables_dir, output_dir)
+    
     logger.info(f"Plots saved to {output_dir}")
 
 
@@ -72,13 +90,12 @@ def generate_training_plots(df: pd.DataFrame, output_dir: str) -> None:
     # 2. Training efficiency (time vs accuracy)
     plt.figure(figsize=(10, 6))
     
-    # Use different markers for each architecture
-    markers = ['o', 's', '^', 'D', 'v', '<', '>', 'p', '*', 'h']
-    
     for idx, arch in enumerate(df['arch'].unique()):
         arch_df = df[df['arch'] == arch]
+        style = get_style(arch)
         plt.scatter(arch_df['duration_seconds'], arch_df['accuracy'], 
-                   label=arch, alpha=0.7, s=80, marker=markers[idx % len(markers)])
+                   label=style['label'], alpha=0.7, s=80, 
+                   marker=style['marker'], color=style['color'])
     
     plt.xlabel('Training Time (seconds)', fontsize=12)
     plt.ylabel('Accuracy', fontsize=12)
@@ -152,7 +169,10 @@ def generate_fewshot_plots(df: pd.DataFrame, output_dir: str) -> None:
             sorted_data = sorted(zip(num_fewshot, accuracy))
             num_fewshot_sorted, accuracy_sorted = zip(*sorted_data)
             
-            ax.plot(num_fewshot_sorted, accuracy_sorted, marker='o', label=arch, linewidth=2, markersize=6)
+            style = get_style(arch)
+            ax.plot(num_fewshot_sorted, accuracy_sorted, 
+                   marker=style['marker'], color=style['color'], label=style['label'], 
+                   linewidth=2, markersize=6)
         
         # Smaller font sizes for many subplots
         title_fontsize = 8 if num_tasks > 20 else 10
@@ -256,13 +276,12 @@ def generate_inference_plots(df: pd.DataFrame, output_dir: str) -> None:
     # 3. Memory vs Performance trade-off
     plt.figure(figsize=(10, 6))
     
-    # Use different markers for each architecture
-    markers = ['o', 's', '^', 'D', 'v']
-    
     for idx, arch in enumerate(df['arch'].unique()):
         arch_df = df[df['arch'] == arch]
+        style = get_style(arch)
         plt.scatter(arch_df['max_memory_gb'], arch_df['throughput_tokens_per_sec'], 
-                   label=arch, alpha=0.7, s=120, marker=markers[idx % len(markers)])
+                   label=style['label'], alpha=0.7, s=120, 
+                   marker=style['marker'], color=style['color'])
     
     plt.xlabel('Max Memory Usage (GB)', fontsize=12)
     plt.ylabel('Throughput (tokens/sec)', fontsize=12)
@@ -286,13 +305,6 @@ def generate_latency_curve(df: pd.DataFrame, output_dir: str) -> None:
     
     # Create figure with two subplots
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
-    
-    # Define colors and markers for architectures
-    arch_styles = {
-        'encoder': {'color': '#2ecc71', 'marker': 'o', 'label': 'Encoder (BERT)'},
-        'decoder': {'color': '#e74c3c', 'marker': 's', 'label': 'Decoder (GPT-2)'},
-        'encdec': {'color': '#3498db', 'marker': '^', 'label': 'Encoder-Decoder (T5)'}
-    }
     
     # Plot 1: End-to-End Latency vs Context Length
     for arch in scaling_df['arch'].unique():
@@ -324,7 +336,7 @@ def generate_latency_curve(df: pd.DataFrame, output_dir: str) -> None:
             grouped.columns = ['context_length', 'latency_ms', 'latency_calculated_std']
             grouped['final_std'] = grouped['latency_calculated_std'].fillna(0)
         
-        style = arch_styles.get(arch, {'color': 'gray', 'marker': 'o', 'label': arch})
+        style = get_style(arch)
         
         ax1.plot(grouped['context_length'], grouped['latency_ms'], 
                 marker=style['marker'], color=style['color'], 
@@ -351,7 +363,7 @@ def generate_latency_curve(df: pd.DataFrame, output_dir: str) -> None:
             'max_memory_gb': 'mean'
         }).reset_index()
         
-        style = arch_styles.get(arch, {'color': 'gray', 'marker': 'o', 'label': arch})
+        style = get_style(arch)
         
         ax2.plot(grouped['context_length'], grouped['max_memory_gb'], 
                 marker=style['marker'], color=style['color'], 
@@ -390,13 +402,6 @@ def generate_ttft_tbt_curves(df: pd.DataFrame, output_dir: str) -> None:
     # Create figure with three subplots
     fig = plt.figure(figsize=(20, 6))
     
-    # Define colors and markers for architectures
-    arch_styles = {
-        'encoder': {'color': '#2ecc71', 'marker': 'o', 'label': 'Encoder (BERT)'},
-        'decoder': {'color': '#e74c3c', 'marker': 's', 'label': 'Decoder (GPT-2)'},
-        'encdec': {'color': '#3498db', 'marker': '^', 'label': 'Encoder-Decoder (T5)'}
-    }
-    
     # Plot 1: TTFT vs Context Length
     ax1 = plt.subplot(1, 3, 1)
     for arch in scaling_df['arch'].unique():
@@ -411,7 +416,7 @@ def generate_ttft_tbt_curves(df: pd.DataFrame, output_dir: str) -> None:
         # Use calculated std if available, otherwise use pre-computed std
         grouped['final_std'] = grouped['ttft_calculated_std'].fillna(grouped['ttft_std_ms']).fillna(0)
         
-        style = arch_styles.get(arch, {'color': 'gray', 'marker': 'o', 'label': arch})
+        style = get_style(arch)
         
         ax1.plot(grouped['context_length'], grouped['ttft_ms'], 
                 marker=style['marker'], color=style['color'], 
@@ -446,7 +451,7 @@ def generate_ttft_tbt_curves(df: pd.DataFrame, output_dir: str) -> None:
             # Use calculated std if available, otherwise use pre-computed std
             grouped['final_std'] = grouped['tbt_calculated_std'].fillna(grouped['tbt_std_ms']).fillna(0)
             
-            style = arch_styles.get(arch, {'color': 'gray', 'marker': 'o', 'label': arch})
+            style = get_style(arch)
             
             ax2.plot(grouped['context_length'], grouped['tbt_ms'], 
                     marker=style['marker'], color=style['color'], 
@@ -480,7 +485,7 @@ def generate_ttft_tbt_curves(df: pd.DataFrame, output_dir: str) -> None:
             # Use calculated std if available, otherwise use pre-computed std
             grouped['final_std'] = grouped['e2e_calculated_std'].fillna(grouped['e2e_std_ms']).fillna(0)
             
-            style = arch_styles.get(arch, {'color': 'gray', 'marker': 'o', 'label': arch})
+            style = get_style(arch)
             
             ax3.plot(grouped['context_length'], grouped['e2e_latency_ms'], 
                     marker=style['marker'], color=style['color'], 
@@ -507,10 +512,10 @@ def generate_ttft_tbt_curves(df: pd.DataFrame, output_dir: str) -> None:
     logger.info("Generated TTFT/TBT breakdown plot")
     
     # Generate additional plot: Stacked bar chart for latency composition
-    generate_latency_composition_chart(scaling_df, output_dir, arch_styles)
+    generate_latency_composition_chart(scaling_df, output_dir)
 
 
-def generate_latency_composition_chart(df: pd.DataFrame, output_dir: str, arch_styles: dict) -> None:
+def generate_latency_composition_chart(df: pd.DataFrame, output_dir: str) -> None:
     """
     Generate stacked bar chart showing latency composition (TTFT vs TBT contribution).
     """
@@ -544,7 +549,7 @@ def generate_latency_composition_chart(df: pd.DataFrame, output_dir: str, arch_s
         x = np.arange(len(context_lengths))
         width = 0.6
         
-        style = arch_styles.get(arch, {'color': 'gray', 'label': arch})
+        style = get_style(arch)
         base_color = style['color']
         
         # TTFT (prefill + first decode)
@@ -576,13 +581,13 @@ def generate_pretraining_plots(df: pd.DataFrame, output_dir: str) -> None:
     plt.figure(figsize=(12, 5))
     
     plt.subplot(1, 2, 1)
-    # Use different markers for each architecture
-    markers = ['o', 's', '^', 'D', 'v']
     
     for idx, arch in enumerate(df['arch'].unique()):
         arch_df = df[df['arch'] == arch]
+        style = get_style(arch)
         plt.scatter(arch_df['epochs_trained'], arch_df['tokens_per_second'], 
-                   label=arch, alpha=0.7, s=120, marker=markers[idx % len(markers)])
+                   label=style['label'], alpha=0.7, s=120, 
+                   marker=style['marker'], color=style['color'])
     
     plt.xlabel('Epochs Trained', fontsize=12)
     plt.ylabel('Tokens per Second', fontsize=12)
@@ -614,7 +619,6 @@ def generate_pretraining_plots(df: pd.DataFrame, output_dir: str) -> None:
     
     # Check if we have any valid kwh data
     has_data = False
-    markers = ['o', 's', '^', 'D', 'v']
     
     for idx, arch in enumerate(df['arch'].unique()):
         arch_df = df[df['arch'] == arch]
@@ -622,8 +626,10 @@ def generate_pretraining_plots(df: pd.DataFrame, output_dir: str) -> None:
             # Filter out None/NaN values
             valid_df = arch_df[arch_df['kwh'].notna()]
             if len(valid_df) > 0:
+                style = get_style(arch)
                 ax.scatter(valid_df['kwh'], valid_df['tokens_per_second'], 
-                          label=arch, alpha=0.7, s=120, marker=markers[idx % len(markers)])
+                          label=style['label'], alpha=0.7, s=120, 
+                          marker=style['marker'], color=style['color'])
                 has_data = True
     
     if has_data:
@@ -644,6 +650,159 @@ def generate_pretraining_plots(df: pd.DataFrame, output_dir: str) -> None:
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir, 'pretraining_energy_efficiency.png'), dpi=300, bbox_inches='tight')
     plt.close()
+
+
+def prepare_tradeoff_data(tables_dir: str) -> pd.DataFrame:
+    """
+    Merge inference and few-shot results to create a unified dataset.
+    Returns a DataFrame with columns: [model, arch, latency_ms, energy_joules, accuracy]
+    """
+    inf_path = os.path.join(tables_dir, "inference_results.csv")
+    few_path = os.path.join(tables_dir, "fewshot_results.csv")
+    
+    try:
+        inf_df = pd.read_csv(inf_path)
+        few_df = pd.read_csv(few_path)
+    except Exception as e:
+        logger.warning(f"Could not read CSVs for tradeoff plot: {e}")
+        return pd.DataFrame()
+
+    # 1. Process Inference Data (Rigorous alignment)
+    # We prioritize a standard context length of 512 for fair comparison.
+    target_ctx = 512
+    if 'context_length' in inf_df.columns:
+        if (inf_df['context_length'] == target_ctx).any():
+            inf_df = inf_df[inf_df['context_length'] == target_ctx]
+            logger.info(f"Tradeoff Plot: Aligned inference data to context length {target_ctx}")
+        else:
+            # If 512 is missing, warn the user and use mean (suboptimal)
+            logger.warning(f"Tradeoff Plot: Target context length {target_ctx} not found. Using MEAN across all lengths (CAUTION: May be unfair).")
+    
+    # Aggregate inference metrics by model
+    # We take the mean in case there are multiple runs for the same model
+    inf_agg = inf_df.groupby(['model', 'arch']).agg({
+        'latency_ms': 'mean',
+        'inference_energy_per_sample_joules': 'mean',
+        'throughput_tokens_per_sec': 'mean'
+    }).reset_index()
+
+    # 2. Process Few-shot Data
+    # Calculate average accuracy across tasks.
+    # Ideally, we should macro-average by benchmark group, but for now we average all tasks
+    # and rename the column to indicate it's an aggregate.
+    few_agg = few_df.groupby(['model', 'arch'])['accuracy'].mean().reset_index()
+    few_agg.rename(columns={'accuracy': 'avg_accuracy'}, inplace=True)
+
+    # 3. Merge on Model and Architecture
+    merged = pd.merge(inf_agg, few_agg, on=['model', 'arch'], how='inner')
+    
+    return merged
+
+
+def generate_tradeoff_plots(tables_dir: str, output_dir: str) -> None:
+    """Generate unified trade-off plots (Efficiency vs Effectiveness vs Energy)."""
+    
+    df = prepare_tradeoff_data(tables_dir)
+    
+    if df.empty:
+        logger.warning("No overlapping models found between inference and fewshot results. Skipping tradeoff plots.")
+        return
+
+    # --- Plot: The "E3" Bubble Chart ---
+    # X: Latency (Efficiency) - Lower is better
+    # Y: Accuracy (Effectiveness) - Higher is better
+    # Size: Energy (Joules) - Smaller is better (represented by bubble size)
+    # Color/Shape: Architecture
+    
+    plt.figure(figsize=(14, 10))
+    
+    # Normalize energy for bubble sizing
+    # Min size 100, Max size 1000
+    if 'inference_energy_per_sample_joules' in df.columns:
+        energy = df['inference_energy_per_sample_joules'].fillna(0)
+        # Use log scale for size if range is large, otherwise linear
+        # Add small epsilon to avoid log(0)
+        epsilon = 1e-6
+        log_energy = np.log1p(energy + epsilon)
+        
+        if log_energy.max() > log_energy.min():
+            sizes = 100 + (log_energy - log_energy.min()) / (log_energy.max() - log_energy.min()) * 900
+        else:
+            sizes = 300
+    else:
+        sizes = 300
+
+    for arch in df['arch'].unique():
+        subset = df[df['arch'] == arch]
+        if subset.empty:
+            continue
+            
+        style = get_style(arch)
+        # Match indices for sizes
+        subset_sizes = sizes[subset.index]
+        
+        plt.scatter(
+            subset['latency_ms'], 
+            subset['avg_accuracy'],
+            s=subset_sizes,
+            c=style['color'],
+            marker=style['marker'],
+            label=style['label'],
+            alpha=0.6,
+            edgecolors='w',
+            linewidth=1.5
+        )
+        
+        # Add labels to points
+        for _, row in subset.iterrows():
+            plt.text(
+                row['latency_ms'], 
+                row['avg_accuracy'], 
+                f"  {row['model']}", 
+                fontsize=9, 
+                alpha=0.8,
+                va='center'
+            )
+
+    # Calculate Pareto Frontier (Efficiency vs Effectiveness)
+    # We want High Accuracy (Max) and Low Latency (Min)
+    # Sort by latency ascending
+    sorted_df = df.sort_values('latency_ms')
+    pareto_points = []
+    max_acc_so_far = -1.0
+    
+    for _, row in sorted_df.iterrows():
+        if row['avg_accuracy'] > max_acc_so_far:
+            pareto_points.append((row['latency_ms'], row['avg_accuracy']))
+            max_acc_so_far = row['avg_accuracy']
+            
+    if pareto_points:
+        px, py = zip(*pareto_points)
+        plt.plot(px, py, 'k--', alpha=0.4, linewidth=1.5, linestyle='--', label='Pareto Frontier')
+
+    plt.xlabel('Inference Latency (ms) [Efficiency] \n(Lower is Better)', fontsize=12, fontweight='bold')
+    plt.ylabel('Average Accuracy [Effectiveness] \n(Higher is Better)', fontsize=12, fontweight='bold')
+    plt.title('The E³ Trade-off: Efficiency vs Effectiveness vs Energy\n(Bubble Size represents Energy Consumption)', fontsize=16, fontweight='bold', pad=20)
+    
+    # Add dummy legend for Size (Energy)
+    if 'inference_energy_per_sample_joules' in df.columns:
+        min_e = df['inference_energy_per_sample_joules'].min()
+        max_e = df['inference_energy_per_sample_joules'].max()
+        mid_e = (min_e + max_e) / 2
+        
+        # Plot invisible points for legend
+        plt.scatter([], [], c='gray', alpha=0.3, s=100, label=f'Energy: {min_e:.2f} J')
+        plt.scatter([], [], c='gray', alpha=0.3, s=550, label=f'Energy: {mid_e:.2f} J')
+        plt.scatter([], [], c='gray', alpha=0.3, s=1000, label=f'Energy: {max_e:.2f} J')
+
+    plt.legend(bbox_to_anchor=(1.02, 1), loc='upper left', title="Architecture & Energy", fontsize=10)
+    plt.grid(True, alpha=0.3, linestyle='--')
+    
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, 'tradeoff_bubble_chart.png'), dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    logger.info("Generated unified trade-off bubble chart")
 
 
 def main():
