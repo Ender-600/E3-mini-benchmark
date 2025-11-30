@@ -1,11 +1,11 @@
 {
-  "exp_id": "fewshot_20251129_222105",
+  "exp_id": "fewshot_20251129_193207",
   "commit": "067ece39",
   "config": {
     "model": {
-      "name": "gpt2",
-      "arch": "decoder",
-      "pretrained": "gpt2",
+      "name": "bert-large-uncased",
+      "arch": "encoder",
+      "pretrained": "bert-large-uncased",
       "dtype": "fp16",
       "attn_impl": "eager",
       "use_lora": true,
@@ -24,9 +24,9 @@
   },
   "metrics": {},
   "timing": {
-    "start_time": 1764476465.0522373,
-    "end_time": 1764476521.5359669,
-    "duration_seconds": 56.48372960090637
+    "start_time": 1764466327.3332288,
+    "end_time": 1764466379.2313085,
+    "duration_seconds": 51.89807963371277
   },
   "resources": {
     "gpu_name": "Tesla V100-SXM2-32GB",
@@ -36,7 +36,7 @@
   "power": {
     "avg_watt": null,
     "kwh": null,
-    "duration_seconds": 58.37363624572754
+    "duration_seconds": 54.95114016532898
   },
-  "timestamp": 1764476523.430555
+  "timestamp": 1764466382.2891583
 }

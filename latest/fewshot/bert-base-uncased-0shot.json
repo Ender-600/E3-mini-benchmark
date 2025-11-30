@@ -1,6 +1,6 @@
 {
-  "exp_id": "fewshot_20251109_025928",
-  "commit": "d557d298",
+  "exp_id": "fewshot_20251129_190740",
+  "commit": "067ece39",
   "config": {
     "model": {
       "name": "bert-base-uncased",
@@ -87,9 +87,9 @@
     "mmlu_machine_learning_accuracy": 0.32
   },
   "timing": {
-    "start_time": 1762678768.16226,
-    "end_time": 1762678899.3473868,
-    "duration_seconds": 131.18512678146362
+    "start_time": 1764464860.6576183,
+    "end_time": 1764464977.7222612,
+    "duration_seconds": 117.06464290618896
   },
   "resources": {
     "gpu_name": "Tesla V100-SXM2-32GB",
@@ -97,8 +97,9 @@
     "cuda_version": "12.8"
   },
   "power": {
-    "avg_watt": 211.51448275862063,
-    "kwh": 0.006815466666666665
+    "avg_watt": null,
+    "kwh": null,
+    "duration_seconds": 118.72051286697388
   },
-  "timestamp": 1762678903.052114
+  "timestamp": 1764464979.383308
 }

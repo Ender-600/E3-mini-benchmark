@@ -1,15 +1,15 @@
 {
-  "exp_id": "cont_pretrain_20251129_153211",
+  "exp_id": "cont_pretrain_20251129_152825",
   "commit": "067ece39",
   "config": {
     "model": {
-      "name": "t5-base",
-      "arch": "encdec",
-      "pretrained": "t5-base",
+      "name": "roberta-base",
+      "arch": "encoder",
+      "pretrained": "roberta-base",
       "dtype": "fp16",
       "attn_impl": "eager",
       "use_lora": true,
-      "max_length": 256
+      "max_length": 512
     },
     "train": {
       "name": "lora",
@@ -39,34 +39,34 @@
     "token_budget": 1000000
   },
   "metrics": {
-    "final_eval_loss": 2.005608320236206,
-    "best_eval_loss": 2.005608320236206,
-    "epochs_trained": 5,
-    "total_tokens": 661760,
+    "final_eval_loss": 1.7706447839736938,
+    "best_eval_loss": 1.626936912536621,
+    "epochs_trained": 1,
+    "total_tokens": 409600,
     "token_budget": 1000000,
-    "duration_seconds": 167.6916720867157,
-    "tokens_per_second": 3946.290187015338,
-    "target_reached": false,
+    "duration_seconds": 54.885716915130615,
+    "tokens_per_second": 7462.779444666114,
+    "target_reached": true,
     "lora_params": {
-      "trainable_params": 3538944,
-      "total_params": 226442496,
-      "trainable_percentage": 1.5628444583122771
+      "trainable_params": 2678784,
+      "total_params": 127376217,
+      "trainable_percentage": 2.103048797563206
     }
   },
   "timing": {
-    "start_time": 1764451931.770326,
-    "end_time": 1764452099.4677477,
-    "duration_seconds": 167.6974217891693
+    "start_time": 1764451705.4675076,
+    "end_time": 1764451760.3561323,
+    "duration_seconds": 54.88862466812134
   },
   "resources": {
     "gpu_name": "Tesla V100-SXM2-32GB",
-    "max_memory_gb": 8.213850021362305,
+    "max_memory_gb": 19.247865676879883,
     "cuda_version": "12.8"
   },
   "power": {
-    "avg_watt": null,
-    "kwh": null,
-    "duration_seconds": 168.56786561012268
+    "avg_watt": 599.2128571428573,
+    "kwh": 0.00919520231452509,
+    "duration_seconds": 55.243688344955444
   },
-  "timestamp": 1764452100.3440812
+  "timestamp": 1764451760.716457
 }

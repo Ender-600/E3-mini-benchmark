@@ -1,6 +1,6 @@
 {
-  "exp_id": "fewshot_20251109_035422",
-  "commit": "d557d298",
+  "exp_id": "fewshot_20251129_195618",
+  "commit": "067ece39",
   "config": {
     "model": {
       "name": "t5-base",
@@ -22,74 +22,11 @@
       ]
     }
   },
-  "metrics": {
-    "mmlu_accuracy": 0.26052631578947366,
-    "mmlu_humanities_accuracy": 0.26692307692307693,
-    "mmlu_formal_logic_accuracy": 0.35,
-    "mmlu_high_school_european_history_accuracy": 0.24,
-    "mmlu_high_school_us_history_accuracy": 0.25,
-    "mmlu_high_school_world_history_accuracy": 0.2,
-    "mmlu_international_law_accuracy": 0.33,
-    "mmlu_jurisprudence_accuracy": 0.29,
-    "mmlu_logical_fallacies_accuracy": 0.22,
-    "mmlu_moral_disputes_accuracy": 0.28,
-    "mmlu_moral_scenarios_accuracy": 0.31,
-    "mmlu_philosophy_accuracy": 0.17,
-    "mmlu_prehistory_accuracy": 0.24,
-    "mmlu_professional_law_accuracy": 0.31,
-    "mmlu_world_religions_accuracy": 0.28,
-    "mmlu_other_accuracy": 0.2723076923076923,
-    "mmlu_business_ethics_accuracy": 0.34,
-    "mmlu_clinical_knowledge_accuracy": 0.35,
-    "mmlu_college_medicine_accuracy": 0.37,
-    "mmlu_global_facts_accuracy": 0.32,
-    "mmlu_human_aging_accuracy": 0.18,
-    "mmlu_management_accuracy": 0.19,
-    "mmlu_marketing_accuracy": 0.34,
-    "mmlu_medical_genetics_accuracy": 0.27,
-    "mmlu_miscellaneous_accuracy": 0.2,
-    "mmlu_nutrition_accuracy": 0.32,
-    "mmlu_professional_accounting_accuracy": 0.24,
-    "mmlu_professional_medicine_accuracy": 0.15,
-    "mmlu_virology_accuracy": 0.27,
-    "mmlu_social_sciences_accuracy": 0.25166666666666665,
-    "mmlu_econometrics_accuracy": 0.29,
-    "mmlu_high_school_geography_accuracy": 0.23,
-    "mmlu_high_school_government_and_politics_accuracy": 0.37,
-    "mmlu_high_school_macroeconomics_accuracy": 0.13,
-    "mmlu_high_school_microeconomics_accuracy": 0.21,
-    "mmlu_high_school_psychology_accuracy": 0.31,
-    "mmlu_human_sexuality_accuracy": 0.3,
-    "mmlu_professional_psychology_accuracy": 0.24,
-    "mmlu_public_relations_accuracy": 0.2,
-    "mmlu_security_studies_accuracy": 0.2,
-    "mmlu_sociology_accuracy": 0.31,
-    "mmlu_us_foreign_policy_accuracy": 0.23,
-    "mmlu_stem_accuracy": 0.2536842105263158,
-    "mmlu_abstract_algebra_accuracy": 0.28,
-    "mmlu_anatomy_accuracy": 0.2,
-    "mmlu_astronomy_accuracy": 0.14,
-    "mmlu_college_biology_accuracy": 0.27,
-    "mmlu_college_chemistry_accuracy": 0.31,
-    "mmlu_college_computer_science_accuracy": 0.28,
-    "mmlu_college_mathematics_accuracy": 0.28,
-    "mmlu_college_physics_accuracy": 0.27,
-    "mmlu_computer_security_accuracy": 0.29,
-    "mmlu_conceptual_physics_accuracy": 0.33,
-    "mmlu_electrical_engineering_accuracy": 0.24,
-    "mmlu_elementary_mathematics_accuracy": 0.25,
-    "mmlu_high_school_biology_accuracy": 0.25,
-    "mmlu_high_school_chemistry_accuracy": 0.26,
-    "mmlu_high_school_computer_science_accuracy": 0.23,
-    "mmlu_high_school_mathematics_accuracy": 0.27,
-    "mmlu_high_school_physics_accuracy": 0.24,
-    "mmlu_high_school_statistics_accuracy": 0.16,
-    "mmlu_machine_learning_accuracy": 0.27
-  },
+  "metrics": {},
   "timing": {
-    "start_time": 1762682062.5826814,
-    "end_time": 1762683092.6324844,
-    "duration_seconds": 1030.04980301857
+    "start_time": 1764467778.042888,
+    "end_time": 1764467835.0546634,
+    "duration_seconds": 57.011775493621826
   },
   "resources": {
     "gpu_name": "Tesla V100-SXM2-32GB",
@@ -97,8 +34,9 @@
     "cuda_version": "12.8"
   },
   "power": {
-    "avg_watt": 264.81260373443956,
-    "kwh": 0.07091093055555549
+    "avg_watt": null,
+    "kwh": null,
+    "duration_seconds": 58.670693159103394
   },
-  "timestamp": 1762683093.2593644
+  "timestamp": 1764467836.7181606
 }

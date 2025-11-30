@@ -1,15 +1,15 @@
 {
-  "exp_id": "cont_pretrain_20251129_153211",
+  "exp_id": "cont_pretrain_20251129_153516",
   "commit": "067ece39",
   "config": {
     "model": {
-      "name": "t5-base",
+      "name": "flan-t5-base",
       "arch": "encdec",
-      "pretrained": "t5-base",
+      "pretrained": "google/flan-t5-base",
       "dtype": "fp16",
       "attn_impl": "eager",
       "use_lora": true,
-      "max_length": 256
+      "max_length": 512
     },
     "train": {
       "name": "lora",
@@ -39,34 +39,34 @@
     "token_budget": 1000000
   },
   "metrics": {
-    "final_eval_loss": 2.005608320236206,
-    "best_eval_loss": 2.005608320236206,
-    "epochs_trained": 5,
-    "total_tokens": 661760,
+    "final_eval_loss": 14.167757987976074,
+    "best_eval_loss": 14.167757987976074,
+    "epochs_trained": 3,
+    "total_tokens": 794112,
     "token_budget": 1000000,
-    "duration_seconds": 167.6916720867157,
-    "tokens_per_second": 3946.290187015338,
+    "duration_seconds": 146.94605350494385,
+    "tokens_per_second": 5404.105663669851,
     "target_reached": false,
     "lora_params": {
       "trainable_params": 3538944,
-      "total_params": 226442496,
-      "trainable_percentage": 1.5628444583122771
+      "total_params": 251116800,
+      "trainable_percentage": 1.4092820552029972
     }
   },
   "timing": {
-    "start_time": 1764451931.770326,
-    "end_time": 1764452099.4677477,
-    "duration_seconds": 167.6974217891693
+    "start_time": 1764452116.3162456,
+    "end_time": 1764452263.2683692,
+    "duration_seconds": 146.95212364196777
   },
   "resources": {
     "gpu_name": "Tesla V100-SXM2-32GB",
-    "max_memory_gb": 8.213850021362305,
+    "max_memory_gb": 21.028518199920654,
     "cuda_version": "12.8"
   },
   "power": {
     "avg_watt": null,
     "kwh": null,
-    "duration_seconds": 168.56786561012268
+    "duration_seconds": 146.95471215248108
   },
-  "timestamp": 1764452100.3440812
+  "timestamp": 1764452263.2770765
 }
