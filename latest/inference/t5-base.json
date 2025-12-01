@@ -1,6 +1,6 @@
 {
-  "exp_id": "inference_20251125_041057",
-  "commit": "cc2e32a6",
+  "exp_id": "inference_scaling_20251130_073427",
+  "commit": "262e7199",
   "config": {
     "model": {
       "name": "t5-base",
@@ -12,38 +12,102 @@
       "max_length": 256
     },
     "bench": {
-      "name": "infer_seq2seq",
+      "name": "infer_seq2seq_scaling",
       "arch": "encdec",
-      "max_length": 512,
-      "num_tokens": 100,
+      "context_lengths": [
+        128,
+        256,
+        512,
+        1024
+      ],
+      "num_tokens": 50,
       "batch_size": 1,
-      "num_runs": 5,
-      "warmup_runs": 2
+      "num_runs": 3,
+      "warmup_runs": 1
     }
   },
   "metrics": {
-    "ttft_ms": 26.49007797241211,
-    "ttft_std_ms": 0.3309218964675104,
-    "encoder_latency_ms": 10.319032669067383,
-    "encoder_std_ms": 0.08841661955138451,
-    "throughput_tokens_per_sec": 53.20500693044707,
-    "throughput_std": 5.080493205495619,
-    "e2e_latency_ms": 317.9522705078125,
-    "e2e_std_ms": 252.70624655731356,
-    "total_runs": 25,
-    "inference_energy_per_sample_joules": 76.81167560340167,
-    "avg_power_watts": 225.14125,
-    "tbt_ms": 17.09322664712529,
-    "tbt_std_ms": 0.6612530008256354,
-    "first_token_latency_ms": 26.49007797241211,
-    "latency_std_ms": 0.3309218964675104,
-    "max_memory_gb": 0.5552840232849121,
-    "current_memory_gb": 0.5500173568725586
+    "128": {
+      "ttft_ms": 23.1205145517985,
+      "ttft_std_ms": 0.6262532300468739,
+      "encoder_latency_ms": 9.215148289998371,
+      "encoder_std_ms": 0.614797052674865,
+      "throughput_tokens_per_sec": 61.53547275063585,
+      "throughput_std": 6.325328311108417,
+      "e2e_latency_ms": 273.73180389404297,
+      "e2e_std_ms": 219.54326736996117,
+      "total_runs": 15,
+      "inference_energy_per_sample_joules": 57.06922894179821,
+      "avg_power_watts": 200.5725,
+      "tbt_ms": 14.74022762208443,
+      "tbt_std_ms": 0.6239710359646913,
+      "first_token_latency_ms": 23.1205145517985,
+      "latency_std_ms": 0.6262532300468739,
+      "max_memory_gb": 0.5552840232849121,
+      "current_memory_gb": 0.5500173568725586
+    },
+    "256": {
+      "ttft_ms": 22.88678487141927,
+      "ttft_std_ms": 0.9320307640852438,
+      "encoder_latency_ms": 9.146849314371744,
+      "encoder_std_ms": 0.7662264055328082,
+      "throughput_tokens_per_sec": 62.31440210817156,
+      "throughput_std": 5.961202962403203,
+      "e2e_latency_ms": 271.46910031636554,
+      "e2e_std_ms": 218.42392805868238,
+      "total_runs": 15,
+      "inference_energy_per_sample_joules": 57.438530563950536,
+      "avg_power_watts": 201.6525,
+      "tbt_ms": 14.496843235884677,
+      "tbt_std_ms": 0.22014652032810936,
+      "first_token_latency_ms": 22.88678487141927,
+      "latency_std_ms": 0.9320307640852438,
+      "max_memory_gb": 0.5552840232849121,
+      "current_memory_gb": 0.5500173568725586
+    },
+    "512": {
+      "ttft_ms": 22.95339902242025,
+      "ttft_std_ms": 0.6370846392711661,
+      "encoder_latency_ms": 9.03188387552897,
+      "encoder_std_ms": 0.4304658963993067,
+      "throughput_tokens_per_sec": 62.2857692094358,
+      "throughput_std": 5.826254500868272,
+      "e2e_latency_ms": 272.1874713897705,
+      "e2e_std_ms": 220.1866055780064,
+      "total_runs": 15,
+      "inference_energy_per_sample_joules": 57.3263953594764,
+      "avg_power_watts": 201.4175,
+      "tbt_ms": 14.524110242192503,
+      "tbt_std_ms": 0.17189281762761818,
+      "first_token_latency_ms": 22.95339902242025,
+      "latency_std_ms": 0.6370846392711661,
+      "max_memory_gb": 0.5552840232849121,
+      "current_memory_gb": 0.5500173568725586
+    },
+    "1024": {
+      "ttft_ms": 22.5797971089681,
+      "ttft_std_ms": 0.3205649652657248,
+      "encoder_latency_ms": 8.867692947387695,
+      "encoder_std_ms": 0.18093899522781043,
+      "throughput_tokens_per_sec": 62.697618704112216,
+      "throughput_std": 5.84543819542098,
+      "e2e_latency_ms": 270.31372388203937,
+      "e2e_std_ms": 218.12132654661147,
+      "total_runs": 15,
+      "inference_energy_per_sample_joules": 56.99523430824281,
+      "avg_power_watts": 198.36,
+      "tbt_ms": 14.433121873003085,
+      "tbt_std_ms": 0.13684974695100457,
+      "first_token_latency_ms": 22.5797971089681,
+      "latency_std_ms": 0.3205649652657248,
+      "max_memory_gb": 0.5552840232849121,
+      "current_memory_gb": 0.5500173568725586
+    }
   },
   "timing": {
-    "start_time": 1764065457.0188947,
-    "end_time": 1764065468.7474735,
-    "duration_seconds": 11.728578805923462
+    "start_time": 1764509667.7126386,
+    "end_time": 1764509688.1345086,
+    "duration_seconds": 20.42186999320984
   },
   "resources": {
     "gpu_name": "Tesla V100-SXM2-32GB",
@@ -51,9 +115,9 @@
     "cuda_version": "12.8"
   },
   "power": {
-    "avg_watt": 225.14125,
-    "kwh": 0.0005334144139125116,
-    "duration_seconds": 8.529276132583618
+    "avg_watt": 198.36,
+    "kwh": 0.00023748014295101166,
+    "duration_seconds": 4.309984445571899
   },
-  "timestamp": 1764065468.7505636
+  "timestamp": 1764509688.142086
 }

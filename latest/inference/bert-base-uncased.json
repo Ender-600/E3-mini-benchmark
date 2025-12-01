@@ -1,6 +1,6 @@
 {
-  "exp_id": "inference_scaling_20251113_191247",
-  "commit": "c9d44d13",
+  "exp_id": "inference_scaling_20251130_074449",
+  "commit": "262e7199",
   "config": {
     "model": {
       "name": "bert-base-uncased",
@@ -27,38 +27,46 @@
   },
   "metrics": {
     "128": {
-      "forward_pass_latency_ms": 7.9786618550618496,
-      "latency_std_ms": 0.27448103898409915,
+      "forward_pass_latency_ms": 6.892283757527669,
+      "latency_std_ms": 0.18819220402390155,
       "total_runs": 15,
+      "inference_energy_per_sample_joules": 14.598360114097597,
+      "avg_power_watts": 204.95000000000002,
       "max_memory_gb": 0.22004413604736328,
       "current_memory_gb": 0.21984577178955078
     },
     "256": {
-      "forward_pass_latency_ms": 7.841380437215169,
-      "latency_std_ms": 0.01760516171044652,
+      "forward_pass_latency_ms": 7.281096776326498,
+      "latency_std_ms": 0.4817196576116387,
       "total_runs": 15,
+      "inference_energy_per_sample_joules": 14.580088568369547,
+      "avg_power_watts": 204.47,
       "max_memory_gb": 0.22004413604736328,
       "current_memory_gb": 0.21984577178955078
     },
     "512": {
-      "forward_pass_latency_ms": 7.86283810933431,
-      "latency_std_ms": 0.070518768376763,
+      "forward_pass_latency_ms": 7.030328114827474,
+      "latency_std_ms": 0.259456831440435,
       "total_runs": 15,
+      "inference_energy_per_sample_joules": 14.848390795071918,
+      "avg_power_watts": 204.89,
       "max_memory_gb": 0.22004413604736328,
       "current_memory_gb": 0.21984577178955078
     },
     "1024": {
-      "forward_pass_latency_ms": 7.924064000447592,
-      "latency_std_ms": 0.23334909634645692,
+      "forward_pass_latency_ms": 7.36853281656901,
+      "latency_std_ms": 0.46427580340182895,
       "total_runs": 15,
+      "inference_energy_per_sample_joules": 14.573130928039552,
+      "avg_power_watts": 204.96,
       "max_memory_gb": 0.22004413604736328,
       "current_memory_gb": 0.21984577178955078
     }
   },
   "timing": {
-    "start_time": 1763082767.026147,
-    "end_time": 1763082770.8941941,
-    "duration_seconds": 3.8680472373962402
+    "start_time": 1764510289.7424238,
+    "end_time": 1764510295.318932,
+    "duration_seconds": 5.576508283615112
   },
   "resources": {
     "gpu_name": "Tesla V100-SXM2-32GB",
@@ -66,9 +74,9 @@
     "cuda_version": "12.8"
   },
   "power": {
-    "avg_watt": null,
-    "kwh": null,
-    "duration_seconds": 4.840980052947998
+    "avg_watt": 204.96,
+    "kwh": 6.0721378866831466e-05,
+    "duration_seconds": 1.0665347576141357
   },
-  "timestamp": 1763082771.871126
+  "timestamp": 1764510295.3248348
 }
